@@ -197,6 +197,33 @@
     "skins": []
 },
 {
+    "id": "polytopia_nuke",
+    "name": "Polytopia Nuke",
+    "rarity": "Rare",
+    "description": "How is it ok for you to just nuke my army like that?",
+    "source": "Polytopia",
+    "collection": "Cobblestone",
+    "skins": []
+},
+{
+    "id": "insane_pose",
+    "name": "Insane Pose",
+    "rarity": "Rare",
+    "description": "Watch that form. It's majestic.",
+    "source": "In Real Life",
+    "collection": "Pixiedust",
+    "skins": []
+},
+{
+    "id": "oshi_no_ko",
+    "name": "Average Sibling Relationship",
+    "rarity": "Rare",
+    "description": "The ending that everyone saw coming.",
+    "source": "Oshi No Ko",
+    "collection": "Pixiedust",
+    "skins": []
+},
+{
     "id": "lagtrain",
     "name": "Lagtrain",
     "rarity": "Epic",
@@ -238,6 +265,15 @@
     "rarity": "Legendary",
     "description": "Uhm... hello? It's Yameii.",
     "source": "OSEANWORLD",
+    "collection": "Harmony",
+    "skins": []
+},
+{
+    "id": "hatsune_miku",
+    "name": "Hatsune Miku",
+    "rarity": "Legendary",
+    "description": "The world... is MINE! :)",
+    "source": "In Real Life",
     "collection": "Harmony",
     "skins": []
 }
