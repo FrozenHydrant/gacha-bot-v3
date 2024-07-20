@@ -179,6 +179,15 @@
     "skins": []
 },
 {
+    "id": "composition",
+    "name": "Composition with Red, Blue, and Yellow",
+    "rarity": "Common",
+    "description": "This is the culmination of purity.",
+    "source": "In Real Life",
+    "collection": "Pixiedust",
+    "skins": []
+},
+{
     "id": "ayanokoji",
     "name": "Ayanokoji",
     "rarity": "Rare",
@@ -257,6 +266,24 @@
     "description": "A superbly rare material forged in the hottest of fires, using only the finest samples of soyjaks.",
     "source": "In Real Life",
     "collection": "Cobblestone",
+    "skins": []
+},
+{
+    "id": "kagurabocchi",
+    "name": "Kagurabocchi!",
+    "rarity": "Epic",
+    "description": "Enough time has passed...",
+    "source": "Kagurabachi... I think",
+    "collection": "Pixiedust",
+    "skins": []
+},
+{
+    "id": "ayaka_and_ganyu",
+    "name": "Ayaka and Ganyu",
+    "rarity": "Epic",
+    "description": "An unexpectedly friendly Ayaka, meets an equally unexpectedly friendly Ganyu.",
+    "source": "Genshin Impact",
+    "collection": "Pixiedust",
     "skins": []
 },
 {
