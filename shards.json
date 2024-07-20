@@ -233,6 +233,15 @@
     "skins": []
 },
 {
+    "id": "chudjak",
+    "name": "Chudjak",
+    "rarity": "Rare",
+    "description": "the West has fallen...but out of flaming ashes a phoenix shall rise. beneath the facade of the bitter man, chudjak's spiritual, moral, and artistic aspirations bring hope to an otherwise fallen West",
+    "source": "In Real Life",
+    "collection": "Cobblestone",
+    "skins": []
+},
+{
     "id": "lagtrain",
     "name": "Lagtrain",
     "rarity": "Epic",
