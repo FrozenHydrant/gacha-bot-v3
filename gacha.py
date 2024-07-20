@@ -71,7 +71,7 @@ class GachaHandle:
 
 class UserHandle:
     def __init__(self):
-        self.HOURS = 8
+        self.HOURS = 4.5
         self.gacha_handle = GachaHandle()
         self.gacha_handle.load_shards()
         
