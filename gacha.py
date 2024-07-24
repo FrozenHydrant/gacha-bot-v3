@@ -71,9 +71,14 @@ class GachaHandle:
 
 class UserHandle:
     def __init__(self):
-        self.HOURS = 4.5
+        self.HOURS = 3.5
+        self.POWERS = {"Common": 1, "Rare": 3, "Epic": 9, "Legendary": 27}
         self.gacha_handle = GachaHandle()
         self.gacha_handle.load_shards()
+
+        with open("phrases.json", "r") as phrases_json:
+            phrases = json.loads(phrases_json.read())
+            self.phrases = phrases["phrases"]
         
     def load_users(self):
         self.users = {}
@@ -161,9 +166,73 @@ class UserHandle:
                 my_collections[collection_name] = (0, all_collections[collection_name])
 
         return my_collections
+
+    def attack(self, attacker_id, attacker_name, defender_id, defender_name):
+        attacker_id = str(attacker_id)
+        defender_id = str(defender_id)
+        attack_inventory = self.users[attacker_id]["inventory"]
+        defense_inventory = self.users[defender_id]["inventory"]
+
+        if len(attack_inventory) < 1:
+            return (attacker_name + " had no units. What a shame.", "")
+        if len(defense_inventory) < 1:
+            return (defender_name + " can't defend themselves.", "")
+
+        attack_lives = 3
+        defense_lives = 3
+        totally = ""
+        while attack_lives > 0 and defense_lives > 0:
+            attack_unit = self.gacha_handle.get_info(random.choice(list(attack_inventory.keys())))
+            defense_unit = self.gacha_handle.get_info(random.choice(list(defense_inventory.keys())))
+            attack_amount = attack_inventory[attack_unit["id"]]
+            defense_amount = defense_inventory[defense_unit["id"]]
+
+            attack_strength = self.POWERS[attack_unit["rarity"]] * attack_amount
+            defense_strength = self.POWERS[defense_unit["rarity"]] * defense_amount
+
+            true_attack_strength = (random.random() * 0.5 + 0.75) * attack_strength
+            true_defense_strength = (random.random() * 0.5 + 0.75) * defense_strength
+
+            #print(attack_unit["name"], attack_amount, defense_unit["name"], defense_amount, attack_strength, defense_strength, true_attack_strength, true_defense_strength)
+
+            phrase = random.choice(self.phrases)
+            win = None
+            win_unit = None
+            win_amount = None
+            loss = None
+            loss_unit = None
+            loss_amount = None
+            if true_attack_strength > true_defense_strength:
+                win = attacker_name
+                win_unit = attack_unit["name"]
+                win_amount = attack_amount
+                loss = defender_name
+                loss_unit = defense_unit["name"]
+                loss_amount = defense_amount
+                defense_lives -= 1
+            else:
+                loss = attacker_name
+                loss_unit = attack_unit["name"]
+                loss_amount = attack_amount
+                win = defender_name
+                win_unit = defense_unit["name"]
+                win_amount = defense_amount
+                attack_lives -= 1
+                
+            totally += phrase.replace("<win>", win).replace("<win_unit>", win_unit + "**x**" + str(win_amount)).replace("<loss>", loss).replace("<loss_unit>", loss_unit + "**x**" + str(loss_amount))
+            totally += "\n\n"
+
+        winning_person = None
+        if defense_lives == 0:
+            winning_person = attacker_name + " wins"
+        else:
+            winning_person = defender_name + " wins"
+            
+        return (totally, winning_person)
+            
+            
             
         
-
     def save_users(self):
         with open("users.json", "w") as users_json:
             users_json.write(json.dumps(self.users, indent=4))

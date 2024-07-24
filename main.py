@@ -47,6 +47,27 @@ async def progress(ctx):
 
     await ctx.send(embed=collections_embed)
 
+@bot.command()
+async def attack(ctx, *args):
+    args = " ".join(args)
+    
+    user_handle.user_init(ctx.author.id)
+
+    guild = ctx.guild
+    targets = await guild.query_members(args)
+    target = None
+    if len(targets) > 0:
+        target = targets[0]
+
+    if target is not None:
+        user_handle.user_init(target.id)
+
+        body, win = user_handle.attack(ctx.author.id, ctx.author.display_name, target.id, target.display_name)
+
+        attack_embed = discord.Embed(title=ctx.author.display_name+"'s onslaught against "+target.display_name, description=body).set_thumbnail(url=ctx.author.avatar).add_field(name="Conclusion", value=win)
+        await ctx.send(embed=attack_embed)
+    else:
+        await ctx.send("Target doesn't exist.")
 
 load_dotenv()
 
