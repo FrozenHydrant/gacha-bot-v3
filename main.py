@@ -74,7 +74,8 @@ async def attack(ctx, *args):
         user_handle.user_init(target.id)
 
         body, win = user_handle.attack(ctx.author.id, ctx.author.display_name, target.id, target.display_name)
-
+        user_handle.save_users()
+        
         attack_embed = discord.Embed(title=ctx.author.display_name+"'s onslaught against "+target.display_name, description=body).set_thumbnail(url=ctx.author.avatar).add_field(name="Conclusion", value=win)
         await ctx.send(embed=attack_embed)
     else:

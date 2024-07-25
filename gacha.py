@@ -82,7 +82,7 @@ class UserHandle:
         
     def load_users(self):
         self.users = {}
-
+        
         with open("users.json", "r") as users_json:
             try:
                 self.users = json.loads(users_json.read())
@@ -110,7 +110,8 @@ class UserHandle:
             self.users[user_id]["selected"] = ""
 
         for item in self.users[user_id]["inventory"]:
-            self.users[user_id]["statuses"][item] = {"name": "Available"}
+            if item not in self.users[user_id]["statuses"]:
+                self.users[user_id]["statuses"][item] = {"name": "Available"}
 
     def user_gacha(self, user_id):
         user_id = str(user_id)
@@ -183,8 +184,15 @@ class UserHandle:
     def attack(self, attacker_id, attacker_name, defender_id, defender_name):
         attacker_id = str(attacker_id)
         defender_id = str(defender_id)
-        attack_inventory = self.users[attacker_id]["inventory"]
-        defense_inventory = self.users[defender_id]["inventory"]
+        attack_inventory = []
+        defense_inventory = []
+
+        for item in self.users[attacker_id]["inventory"]:
+            if self.users[attacker_id]["statuses"][item]["name"] == "Available":
+                attack_inventory.append(item)
+        for item in self.users[defender_id]["inventory"]:
+            if self.users[defender_id]["statuses"][item]["name"] == "Available":
+                defense_inventory.append(item)
 
         if len(attack_inventory) < 1:
             return (attacker_name + " had no units. What a shame.", "")
@@ -195,10 +203,10 @@ class UserHandle:
         defense_lives = 3
         totally = ""
         while attack_lives > 0 and defense_lives > 0:
-            attack_unit = self.gacha_handle.get_info(random.choice(list(attack_inventory.keys())))
-            defense_unit = self.gacha_handle.get_info(random.choice(list(defense_inventory.keys())))
-            attack_amount = attack_inventory[attack_unit["id"]]
-            defense_amount = defense_inventory[defense_unit["id"]]
+            attack_unit = self.gacha_handle.get_info(random.choice(attack_inventory))
+            defense_unit = self.gacha_handle.get_info(random.choice(defense_inventory))
+            attack_amount = self.users[attacker_id]["inventory"][attack_unit["id"]]
+            defense_amount = self.users[defender_id]["inventory"][defense_unit["id"]]
 
             attack_strength = self.POWERS[attack_unit["rarity"]] * attack_amount
             defense_strength = self.POWERS[defense_unit["rarity"]] * defense_amount
@@ -223,6 +231,8 @@ class UserHandle:
                 loss_unit = defense_unit["name"]
                 loss_amount = defense_amount
                 defense_lives -= 1
+                self.users[defender_id]["statuses"][defense_unit["id"]]["name"] = "Damaged"
+                self.users[defender_id]["statuses"][defense_unit["id"]]["until"] = datetime.strftime(datetime.now() + timedelta(hours=1), "%y-%m-%d %H:%M:%S")
             else:
                 loss = attacker_name
                 loss_unit = attack_unit["name"]
@@ -231,6 +241,8 @@ class UserHandle:
                 win_unit = defense_unit["name"]
                 win_amount = defense_amount
                 attack_lives -= 1
+                self.users[attacker_id]["statuses"][attack_unit["id"]]["name"] = "Damaged"
+                self.users[attacker_id]["statuses"][attack_unit["id"]]["until"] = datetime.strftime(datetime.now() + timedelta(hours=1), "%y-%m-%d %H:%M:%S")
                 
             totally += phrase.replace("<win>", win).replace("<win_unit>", win_unit + "**x**" + str(win_amount)).replace("<loss>", loss).replace("<loss_unit>", loss_unit + "**x**" + str(loss_amount))
             totally += "\n\n"
