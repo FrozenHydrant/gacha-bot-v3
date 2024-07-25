@@ -64,7 +64,7 @@ class GachaHandle:
 
     # Please do not modify the returned values. That would not be nice.
     def get_info(self, item):
-        return self.shards_dict[item]
+        return copy.copy(self.shards_dict[item])
 
     def get_collections(self):
         return self.collection_counts
@@ -104,6 +104,13 @@ class UserHandle:
             self.users[user_id]["collections"] = {}
         if "total_items" not in self.users[user_id]:
             self.users[user_id]["total_items"] = 0
+        if "statuses" not in self.users[user_id]:
+            self.users[user_id]["statuses"] = {}
+        if "selected" not in self.users[user_id]:
+            self.users[user_id]["selected"] = ""
+
+        for item in self.users[user_id]["inventory"]:
+            self.users[user_id]["statuses"][item] = {"name": "Available"}
 
     def user_gacha(self, user_id):
         user_id = str(user_id)
@@ -166,6 +173,14 @@ class UserHandle:
                 my_collections[collection_name] = (0, all_collections[collection_name])
 
         return my_collections
+
+    def itemslist(self, user_id):
+        user_id = str(user_id)
+        statuses = self.users[user_id]["statuses"]
+        totality = ""
+        for item in statuses:
+            totality += self.gacha_handle.get_info(item)["name"] + " - **" + statuses[item]["name"] + "**" + "\n"
+        return totality
 
     def attack(self, attacker_id, attacker_name, defender_id, defender_name):
         attacker_id = str(attacker_id)

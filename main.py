@@ -19,7 +19,9 @@ COLOURS = {"Common": discord.Colour.light_gray(), "Rare": discord.Colour.blue(),
 async def test(ctx):
     await ctx.send("Test!_")
 
-@bot.command()
+@bot.command(
+    help="Usage: ricky gacha. Performs a wish."
+)
 async def gacha(ctx):
     user_handle.user_init(ctx.author.id)
     success, item = user_handle.user_gacha(ctx.author.id)
@@ -35,7 +37,9 @@ async def gacha(ctx):
 
         await ctx.send(ctx.author.mention + ", wishes left: " + user_handle.wishes(ctx.author.id), file=image_file, embed=wish_embed)
 
-@bot.command()
+@bot.command(
+    help="Usage: ricky progress. Checks collection progress."
+)
 async def progress(ctx):
     user_handle.user_init(ctx.author.id)
 
@@ -47,7 +51,9 @@ async def progress(ctx):
 
     await ctx.send(embed=collections_embed)
 
-@bot.command()
+@bot.command(
+    help="Usage: ricky attack <username>. Attacks the specified person."
+)
 async def attack(ctx, *args):
     args = " ".join(args)
     
@@ -69,6 +75,17 @@ async def attack(ctx, *args):
     else:
         await ctx.send("Target doesn't exist.")
 
+@bot.command(
+    help="Usage: ricky items. Lists items owned and status."
+)
+async def items(ctx):
+    user_handle.user_init(ctx.author.id)
+
+    info = user_handle.itemslist(ctx.author.id)
+
+    items_embed = discord.Embed(title=ctx.author.display_name+"'s Items", description=info).set_thumbnail(url=ctx.author.avatar).add_field(name="Showing", value="Items Owned")
+    await ctx.send(embed=items_embed)
+    
 load_dotenv()
 
 TOKEN = os.getenv('TOKEN')
