@@ -115,15 +115,13 @@ class UserHandle:
     def user_gacha(self, user_id):
         user_id = str(user_id)
         
-
         # Determine the time elapsed since the user cast a wish
         last_time = datetime.strptime(self.users[user_id]["last_wish_time"], "%y-%m-%d %H:%M:%S")
         time_elapsed = datetime.now() - last_time
 
         # Calculate wishes generated
         wishes = float(self.users[user_id]["wish_amount"])
-        wishes += time_elapsed.total_seconds() / (3600*self.HOURS)
-        wishes = min(wishes, 10)
+        wishes += min(time_elapsed.total_seconds() / (3600*self.HOURS), 10)
         
         # Update the wish count and wish time
         self.users[user_id]["last_wish_time"] = datetime.strftime(datetime.now(), "%y-%m-%d %H:%M:%S")

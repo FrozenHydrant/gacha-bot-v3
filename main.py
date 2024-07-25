@@ -60,6 +60,11 @@ async def attack(ctx, *args):
     user_handle.user_init(ctx.author.id)
 
     guild = ctx.guild
+
+    if guild is None:
+        await ctx.send("We can't do this here~")
+        return
+        
     targets = await guild.query_members(args)
     target = None
     if len(targets) > 0:
