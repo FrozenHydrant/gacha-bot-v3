@@ -4,6 +4,7 @@ import gacha
 import os
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+import util
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -29,7 +30,7 @@ async def gacha(ctx):
     user_handle.save_users()
     if not success:
         time_left = item - datetime.now()
-        await ctx.send(ctx.author.mention + ", you must wait **" + str(time_left.days) + " days, " + str(time_left.seconds // 3600) + " hours and " + str(time_left.seconds % 3600 // 60) + " minutes** to wish again!")
+        await ctx.send(ctx.author.mention + ", you must wait **" + util.timeformat(time_left, " days", " hours", " minutes") + "** to wish again!")
     else:
         image_file = discord.File("img/"+item["id"]+".png", filename=item["id"]+".png")
         wish_embed = discord.Embed(title=ctx.author.display_name+"'s "+item["name"], description="*"+item["description"]+"*", colour=COLOURS[item["rarity"]]).set_footer(text=item["source"]).set_image(url="attachment://"+item["id"]+".png").set_thumbnail(url=ctx.author.avatar).add_field(name="Rarity", value=item["rarity"]).add_field(name="Collection", value=item["collection"])
@@ -73,11 +74,20 @@ async def attack(ctx, *args):
     if target is not None:
         user_handle.user_init(target.id)
 
-        body, win = user_handle.attack(ctx.author.id, ctx.author.display_name, target.id, target.display_name)
+        body, win, loot = user_handle.attack(ctx.author.id, ctx.author.display_name, target.id, target.display_name)
         user_handle.save_users()
         
         attack_embed = discord.Embed(title=ctx.author.display_name+"'s onslaught against "+target.display_name, description=body).set_thumbnail(url=ctx.author.avatar).add_field(name="Conclusion", value=win)
-        await ctx.send(embed=attack_embed)
+        loot_embed = discord.Embed(title="Loot Received", description="*Nice attack. Here's the loot we received from the enemy:*")
+
+        # Create loot embed and populate with details
+        if len(loot) > 0:
+            for item in loot:
+                loot_embed.add_field(name=item, value=loot[item])
+        else:
+            loot_embed.description = "No loot gained from this attack."
+            
+        await ctx.send(embeds=[attack_embed, loot_embed])
     else:
         await ctx.send("Target doesn't exist.")
 
@@ -88,7 +98,8 @@ async def items(ctx):
     user_handle.user_init(ctx.author.id)
 
     info = user_handle.itemslist(ctx.author.id)
-
+    user_handle.save_users()
+    
     items_embed = discord.Embed(title=ctx.author.display_name+"'s Items", description=info).set_thumbnail(url=ctx.author.avatar).add_field(name="Showing", value="Items Owned")
     await ctx.send(embed=items_embed)
     
