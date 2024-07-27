@@ -102,9 +102,10 @@ async def items(ctx):
     user_handle.user_init(ctx.author.id)
 
     info = user_handle.itemslist(ctx.author.id)
+    stability = user_handle.calculate_stability(ctx.author.id)
     user_handle.save_users()
     
-    items_embed = discord.Embed(title=ctx.author.display_name+"'s Items", description=info).set_thumbnail(url=ctx.author.avatar).add_field(name="Showing", value="Items Owned")
+    items_embed = discord.Embed(title=ctx.author.display_name+"'s Items", description=info).set_thumbnail(url=ctx.author.avatar).add_field(name="Showing", value="Items Owned").add_field(name="Team Stability", value=str(stability*100)+"%")
     await ctx.send(embed=items_embed)
     
 load_dotenv()

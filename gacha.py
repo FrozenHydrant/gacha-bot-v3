@@ -214,20 +214,30 @@ class UserHandle:
                 totality += self.gacha_handle.get_info(item)["name"] + " - **" + statuses[item]["name"] + "**" + "\n"
         return totality
 
+    def get_available_items(self, user_id):
+        new_inventory = []
+        user_id = str(user_id)
+        for item in self.users[user_id]["inventory"]:
+            self.update_item_status(user_id, item)
+            if self.users[user_id]["statuses"][item]["name"] == "Available":
+                new_inventory.append(item)
+
+        return new_inventory
+
+    def calculate_stability(self, user_id):
+        user_id = str(user_id)
+        
+        new_inventory = self.get_available_items(user_id)
+        return (len(new_inventory) - 2) / len(self.users[user_id]["inventory"])
+
     def attack(self, attacker_id, attacker_name, defender_id, defender_name):
         attacker_id = str(attacker_id)
         defender_id = str(defender_id)
-        attack_inventory = []
-        defense_inventory = []
+        attack_inventory = self.get_available_items(attacker_id)
+        defense_inventory = self.get_available_items(defender_id)
 
-        for item in self.users[attacker_id]["inventory"]:
-            self.update_item_status(attacker_id, item)
-            if self.users[attacker_id]["statuses"][item]["name"] == "Available":
-                attack_inventory.append(item)
-        for item in self.users[defender_id]["inventory"]:
-            self.update_item_status(defender_id, item)
-            if self.users[defender_id]["statuses"][item]["name"] == "Available":
-                defense_inventory.append(item)
+        attack_stability = self.calculate_stability(attacker_id)
+        defense_stability = self.calculate_stability(defender_id)
 
         if len(attack_inventory) < 1:
             return (attacker_name + " had no units. What a shame.", "", {})
@@ -256,9 +266,10 @@ class UserHandle:
             attack_strength = self.POWERS[attack_unit["rarity"]] * attack_amount
             defense_strength = self.POWERS[defense_unit["rarity"]] * defense_amount
 
-            true_attack_strength = (random.random() * 0.5 + 0.75) * attack_strength
-            true_defense_strength = (random.random() * 0.5 + 0.75) * defense_strength
-            
+            true_attack_strength = (random.random() * (1-attack_stability) + attack_stability) * attack_strength
+            true_defense_strength = (random.random() * (1-defense_stability) + defense_stability) * defense_strength
+
+            #print(attack_unit["name"], defense_unit["name"], attack_strength, defense_strength, attack_stability, defense_stability, true_attack_strength, true_defense_strength) 
             phrase = random.choice(self.phrases)
             win = None
             win_unit = None
@@ -291,7 +302,8 @@ class UserHandle:
                 attack_lives -= 1
                 self.users[attacker_id]["statuses"][attack_unit["id"]]["name"] = "Damaged"
                 self.users[attacker_id]["statuses"][attack_unit["id"]]["until"] = datetime.strftime(datetime.now() + timedelta(hours=1), "%y-%m-%d %H:%M:%S")
-                
+
+            totally += "**" + win + "'s " + win_unit + " -> " + loss + "'s " + loss_unit + "**\n"    
             totally += phrase.replace("<win>", win).replace("<win_unit>", win_unit + "**x**" + str(win_amount)).replace("<loss>", loss).replace("<loss_unit>", loss_unit + "**x**" + str(loss_amount))
             totally += "\n\n"
 
