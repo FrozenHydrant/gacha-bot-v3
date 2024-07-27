@@ -74,6 +74,10 @@ async def attack(ctx, *args):
     if target is not None:
         user_handle.user_init(target.id)
 
+        if target.id == ctx.author.id:
+            await ctx.send("Can't target yourself with an attack.")
+            return
+
         body, win, loot = user_handle.attack(ctx.author.id, ctx.author.display_name, target.id, target.display_name)
         user_handle.save_users()
         
