@@ -1,41 +1,55 @@
 {
-    "rarities":[
-       {
-          "rarity":"Common",
-          "chance":"-1",
-          "strength":1
-       },
-       {
-          "rarity":"Rare",
-          "chance":"0.1",
-          "strength":3
-       },
-       {
-          "rarity":"Epic",
-          "chance":"0.03",
-          "strength":9
-       },
-       {
-          "rarity":"Legendary",
-          "chance":"0.01",
-          "strength":27
-       }
-    ],
-    "collections":[
+   "rarities":[
       {
-         "id": "cobblestone",
-         "name": "Cobblestone",
-         "currency": "gears"
+         "rarity":"Common",
+         "chance":"-1",
+         "strength":1
       },
       {
-         "id": "pixiedust",
-         "name": "Pixiedust",
-         "currency": "sparkles"
+         "rarity":"Rare",
+         "chance":"0.1",
+         "strength":3
       },
       {
-         "id": "harmony",
-         "name": "Harmony",
-         "currency": "haloes"
+         "rarity":"Epic",
+         "chance":"0.03",
+         "strength":9
+      },
+      {
+         "rarity":"Legendary",
+         "chance":"0.01",
+         "strength":27
       }
-    ]
- }
+   ],
+   "collections":[
+      {
+         "id":"cobblestone",
+         "name":"Cobblestone",
+         "currency":"gears"
+      },
+      {
+         "id":"pixiedust",
+         "name":"Pixiedust",
+         "currency":"sparkles"
+      },
+      {
+         "id":"harmony",
+         "name":"Harmony",
+         "currency":"haloes"
+      }
+   ],
+   "currencies":[
+      {
+         "id":"gears",
+         "name":"Gears"
+      },
+      {
+         "id":"sparkles",
+         "name":"Pixels"
+      },
+      {
+         "id":"haloes",
+         "name":"Haloes"
+      }
+   ]
+}

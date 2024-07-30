@@ -7,11 +7,15 @@ import util
 
 class GachaHandle:
     def load_shards(self):
+        random.seed()
+        
         self.shards_dict = {}
         self.shards_rarities = {}
         self.options = []
         self.collection_counts = {}
         self.collections_dict = {}
+        self.rarities_dict = {}
+        self.currencies_dict = {}
         self.total_shards = 0
         with open("options.json", "r") as rarities:
             all_options = json.loads(rarities.read())
@@ -19,20 +23,27 @@ class GachaHandle:
             to_infer_prob = None
             for option in all_options["rarities"]:
                 parsed_chance = float(option["chance"])
+                self.rarities_dict[option["rarity"]] = option
                 self.options.append((option["rarity"], parsed_chance))
                 if parsed_chance == -1:
                     to_infer_prob = len(self.options)-1
                 else:
                     total += parsed_chance
+                
 
             self.options[to_infer_prob] = (self.options[to_infer_prob][0], 1-total)
             self.options.sort(key=lambda x: x[1])
-            print("Loaded rarities: " + str(self.options))
+            print("Loaded rarities: " + str(self.options), self.rarities_dict, "\n")
 
             # Initialize collections
             for collection in all_options["collections"]:
                 self.collection_counts[collection["id"]] = 0
                 self.collections_dict[collection["id"]] = collection
+
+            for currency in all_options["currencies"]:
+                self.currencies_dict[currency["id"]] = currency
+
+            print("Loaded currencies: ", self.currencies_dict)
         
         with open("shards.json", "r") as shards_json:
             all_shards = json.loads(shards_json.read())
@@ -70,12 +81,12 @@ class GachaHandle:
 
     def get_id_from_name(self, name):
         for item in self.shards_dict:
-            if name.lower() in self.get_info(item)["name"].lower():
+            if name.lower() in self.get_item_info(item)["name"].lower():
                 return item
         return None
 
     # Please do not modify the returned values. That would not be nice.
-    def get_info(self, item):
+    def get_item_info(self, item):
         return copy.copy(self.shards_dict[item])
 
     def get_collection_info(self, collection):
@@ -84,14 +95,23 @@ class GachaHandle:
     def get_collections(self):
         return copy.copy(self.collection_counts)
 
+    def get_rarity_info(self, rarity):
+        return copy.copy(self.rarities_dict[rarity])
+
+    def get_currency_info(self, currency):
+        return copy.copy(self.currencies_dict[currency])
+
+    def get_currencies(self):
+        return copy.copy(self.currencies_dict)
+
 class UserHandle:
     def __init__(self):
         self.HOURS = 3.5
-        self.POWERS = {"Common": 1, "Rare": 3, "Epic": 9, "Legendary": 27}
-        self.LOOT = {"Cobblestone": "gears", "Pixiedust": "sparkles", "Harmony": "haloes"}
+        #self.POWERS = {"Common": 1, "Rare": 3, "Epic": 9, "Legendary": 27}
+        #self.LOOT = {"Cobblestone": "gears", "Pixiedust": "sparkles", "Harmony": "haloes"}
 
         # TODO: Make English json file to handle translations
-        self.LOOT_EN = {"gears": "Gears", "sparkles": "Pixels", "haloes": "Haloes"}
+        #self.LOOT_EN = {"gears": "Gears", "sparkles": "Pixels", "haloes": "Haloes"}
         self.gacha_handle = GachaHandle()
         self.gacha_handle.load_shards()
 
@@ -173,7 +193,7 @@ class UserHandle:
                 self.users[user_id]["inventory"][item] = 0
 
                 # Increase collection count if this is the first of that item
-                collection = self.gacha_handle.get_info(item)["collection"]
+                collection = self.gacha_handle.get_item_info(item)["collection"]
                 if collection not in self.users[user_id]["collections"]:
                     self.users[user_id]["collections"][collection] = 0
                 self.users[user_id]["collections"][collection] += 1
@@ -182,7 +202,7 @@ class UserHandle:
                 
             self.users[user_id]["inventory"][item] += 1
 
-            return (True, self.gacha_handle.get_info(item))
+            return (True, self.gacha_handle.get_item_info(item))
         else:
             # Give the time at which one wish will be available (at a rate of 3.5 hours per wish)
             return (False, datetime.now() + timedelta(hours=self.HOURS)*(1-wishes))
@@ -198,7 +218,7 @@ class UserHandle:
             return None
         
         self.users[user_id]["selected"] = selected_item_id
-        return self.gacha_handle.get_info(selected_item_id)
+        return self.gacha_handle.get_item_info(selected_item_id)
         
 
     def wishes(self, user_id):
@@ -240,9 +260,9 @@ class UserHandle:
         for item in statuses:
             time_left = self.update_item_status(user_id, item)
             if time_left is not None:
-                totality += self.gacha_handle.get_info(item)["name"] + " - **" + statuses[item]["name"] + " (" + util.timeformat(time_left, "d", "h", "m") + ")**" + "\n"
+                totality += self.gacha_handle.get_item_info(item)["name"] + " - **" + statuses[item]["name"] + " (" + util.timeformat(time_left, "d", "h", "m") + ")**" + "\n"
             else:
-                totality += self.gacha_handle.get_info(item)["name"] + " - **" + statuses[item]["name"] + "**" + "\n"
+                totality += self.gacha_handle.get_item_info(item)["name"] + " - **" + statuses[item]["name"] + "**" + "\n"
         return totality
 
     def get_available_items(self, user_id):
@@ -286,8 +306,8 @@ class UserHandle:
 
         # Initialize the given loot with all possible loots
         given_loot = {}
-        for loot in self.LOOT_EN.values():
-            given_loot[loot] = 0
+        #for loot in self.LOOT_EN.values():
+        #    given_loot[loot] = 0
 
         # Shuffle the lists, based on https://stackoverflow.com/questions/10048069/what-is-the-most-pythonic-way-to-pop-a-random-element-from-a-list
         random.shuffle(attack_inventory)
@@ -295,13 +315,13 @@ class UserHandle:
         
         while attack_lives > 0 and defense_lives > 0 and len(attack_inventory) > 0 and len(defense_inventory) > 0:
             # Get the attacking unit, defending unit, and amount of both
-            attack_unit = self.gacha_handle.get_info(attack_inventory.pop())
-            defense_unit = self.gacha_handle.get_info(defense_inventory.pop())
+            attack_unit = self.gacha_handle.get_item_info(attack_inventory.pop())
+            defense_unit = self.gacha_handle.get_item_info(defense_inventory.pop())
             attack_amount = self.users[attacker_id]["inventory"][attack_unit["id"]]
             defense_amount = self.users[defender_id]["inventory"][defense_unit["id"]]
 
-            attack_strength = self.POWERS[attack_unit["rarity"]] * attack_amount
-            defense_strength = self.POWERS[defense_unit["rarity"]] * defense_amount
+            attack_strength = self.gacha_handle.get_rarity_info(attack_unit["rarity"])["strength"] * attack_amount
+            defense_strength = self.gacha_handle.get_rarity_info(defense_unit["rarity"])["strength"] * defense_amount
 
             true_attack_strength = (random.random() * (1-attack_stability) + attack_stability) * attack_strength
             true_defense_strength = (random.random() * (1-defense_stability) + defense_stability) * defense_strength
@@ -326,8 +346,11 @@ class UserHandle:
                 self.users[defender_id]["statuses"][defense_unit["id"]]["until"] = datetime.strftime(datetime.now() + timedelta(hours=1), "%y-%m-%d %H:%M:%S")
 
                 # Award loot for slain enemies
-                self.users[attacker_id][self.LOOT[defense_unit["collection"]]] += self.POWERS[defense_unit["rarity"]]
-                given_loot[self.LOOT_EN[self.LOOT[defense_unit["collection"]]]] += self.POWERS[defense_unit["rarity"]]
+                self.users[attacker_id][self.gacha_handle.get_collection_info(defense_unit["collection"])["currency"]] += self.gacha_handle.get_rarity_info(defense_unit["rarity"])["strength"]
+                currency_name = self.gacha_handle.get_currency_info(self.gacha_handle.get_collection_info(defense_unit["collection"])["currency"])["name"]
+                if currency_name not in given_loot:
+                    given_loot[currency_name] = 0
+                given_loot[currency_name] += self.gacha_handle.get_rarity_info(defense_unit["rarity"])["strength"]
                 
             else:
                 loss = attacker_name
