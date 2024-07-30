@@ -11,12 +11,13 @@ class GachaHandle:
         self.shards_rarities = {}
         self.options = []
         self.collection_counts = {}
+        self.collections_dict = {}
         self.total_shards = 0
         with open("options.json", "r") as rarities:
             all_options = json.loads(rarities.read())
             total = 0
             to_infer_prob = None
-            for option in all_options:
+            for option in all_options["rarities"]:
                 parsed_chance = float(option["chance"])
                 self.options.append((option["rarity"], parsed_chance))
                 if parsed_chance == -1:
@@ -27,14 +28,17 @@ class GachaHandle:
             self.options[to_infer_prob] = (self.options[to_infer_prob][0], 1-total)
             self.options.sort(key=lambda x: x[1])
             print("Loaded rarities: " + str(self.options))
+
+            # Initialize collections
+            for collection in all_options["collections"]:
+                self.collection_counts[collection["id"]] = 0
+                self.collections_dict[collection["id"]] = collection
         
         with open("shards.json", "r") as shards_json:
             all_shards = json.loads(shards_json.read())
 
             for shard in all_shards:
                 #Increase shard count and add it to collection counts
-                if shard["collection"] not in self.collection_counts:
-                    self.collection_counts[shard["collection"]] = 0
                 self.collection_counts[shard["collection"]] += 1
                 self.total_shards += 1
                 
@@ -46,7 +50,8 @@ class GachaHandle:
                     self.shards_rarities[shard["rarity"]] = []    
                 self.shards_rarities[shard["rarity"]].append(shard["id"])
 
-            print(self.shards_dict, self.shards_rarities, "Have been loaded.")
+            print(self.shards_dict, self.shards_rarities, " have been loaded.\n")
+            print(self.collection_counts, self.collections_dict, " have also been loaded.\n")
 
     def get_gacha_option(self):
         pull = random.random()
@@ -73,8 +78,11 @@ class GachaHandle:
     def get_info(self, item):
         return copy.copy(self.shards_dict[item])
 
+    def get_collection_info(self, collection):
+        return copy.copy(self.collections_dict[collection])
+
     def get_collections(self):
-        return self.collection_counts
+        return copy.copy(self.collection_counts)
 
 class UserHandle:
     def __init__(self):
@@ -202,13 +210,16 @@ class UserHandle:
 
         my_collections = copy.copy(self.users[user_id]["collections"])
         all_collections = self.gacha_handle.get_collections()
-        for collection_name in all_collections:
-            if collection_name in my_collections:
-                my_collections[collection_name] = (my_collections[collection_name], all_collections[collection_name])
+        collections_info = {}
+        for collection_id in all_collections:
+            collection_name = self.gacha_handle.get_collection_info(collection_id)["name"]
+            if collection_id in my_collections:
+                collections_info[collection_name] = (my_collections[collection_id], all_collections[collection_id])
             else:
-                my_collections[collection_name] = (0, all_collections[collection_name])
+                collections_info[collection_name] = (0, all_collections[collection_id])
 
-        return my_collections
+        #print(collections_info)
+        return collections_info
 
     def update_item_status(self, user_id, item):
         user_id = str(user_id)

@@ -1,1 +1,41 @@
-[{"rarity": "Common", "chance": "-1"}, {"rarity": "Rare", "chance": "0.1"}, {"rarity": "Epic", "chance": "0.03"}, {"rarity": "Legendary", "chance": "0.01"}]
+{
+    "rarities":[
+       {
+          "rarity":"Common",
+          "chance":"-1",
+          "strength":1
+       },
+       {
+          "rarity":"Rare",
+          "chance":"0.1",
+          "strength":3
+       },
+       {
+          "rarity":"Epic",
+          "chance":"0.03",
+          "strength":9
+       },
+       {
+          "rarity":"Legendary",
+          "chance":"0.01",
+          "strength":27
+       }
+    ],
+    "collections":[
+      {
+         "id": "cobblestone",
+         "name": "Cobblestone",
+         "currency": "gears"
+      },
+      {
+         "id": "pixiedust",
+         "name": "Pixiedust",
+         "currency": "sparkles"
+      },
+      {
+         "id": "harmony",
+         "name": "Harmony",
+         "currency": "haloes"
+      }
+    ]
+ }
