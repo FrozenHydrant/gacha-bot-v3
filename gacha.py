@@ -63,6 +63,12 @@ class GachaHandle:
         given_item = random.choice(self.shards_rarities[selected_rarity])
         return given_item
 
+    def get_id_from_name(self, name):
+        for item in self.shards_dict:
+            if name.lower() in self.get_info(item)["name"].lower():
+                return item
+        return None
+
     # Please do not modify the returned values. That would not be nice.
     def get_info(self, item):
         return copy.copy(self.shards_dict[item])
@@ -173,6 +179,20 @@ class UserHandle:
             # Give the time at which one wish will be available (at a rate of 3.5 hours per wish)
             return (False, datetime.now() + timedelta(hours=self.HOURS)*(1-wishes))
 
+    def select(self, user_id, item):
+        user_id = str(user_id)
+        selected_item_id = self.gacha_handle.get_id_from_name(item)
+
+        if selected_item_id == None:
+            return None
+
+        if selected_item_id not in self.users[user_id]["inventory"]:
+            return None
+        
+        self.users[user_id]["selected"] = selected_item_id
+        return self.gacha_handle.get_info(selected_item_id)
+        
+
     def wishes(self, user_id):
         user_id = str(user_id)
         return self.users[user_id]["wish_amount"]
@@ -228,6 +248,8 @@ class UserHandle:
         user_id = str(user_id)
         
         new_inventory = self.get_available_items(user_id)
+        if len(self.users[user_id]["inventory"]) == 0:
+            return 0
         return (len(new_inventory) - 2) / len(self.users[user_id]["inventory"])
 
     def attack(self, attacker_id, attacker_name, defender_id, defender_name):
@@ -255,11 +277,15 @@ class UserHandle:
         given_loot = {}
         for loot in self.LOOT_EN.values():
             given_loot[loot] = 0
+
+        # Shuffle the lists, based on https://stackoverflow.com/questions/10048069/what-is-the-most-pythonic-way-to-pop-a-random-element-from-a-list
+        random.shuffle(attack_inventory)
+        random.shuffle(defense_inventory)
         
-        while attack_lives > 0 and defense_lives > 0:
+        while attack_lives > 0 and defense_lives > 0 and len(attack_inventory) > 0 and len(defense_inventory) > 0:
             # Get the attacking unit, defending unit, and amount of both
-            attack_unit = self.gacha_handle.get_info(random.choice(attack_inventory))
-            defense_unit = self.gacha_handle.get_info(random.choice(defense_inventory))
+            attack_unit = self.gacha_handle.get_info(attack_inventory.pop())
+            defense_unit = self.gacha_handle.get_info(defense_inventory.pop())
             attack_amount = self.users[attacker_id]["inventory"][attack_unit["id"]]
             defense_amount = self.users[defender_id]["inventory"][defense_unit["id"]]
 
@@ -308,7 +334,7 @@ class UserHandle:
             totally += "\n\n"
 
         winning_person = None
-        if defense_lives == 0:
+        if defense_lives < attack_lives:
             winning_person = attacker_name + " wins"
         else:
             winning_person = defender_name + " wins"

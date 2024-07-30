@@ -57,7 +57,6 @@ async def progress(ctx):
 )
 async def attack(ctx, *args):
     args = " ".join(args)
-    
     user_handle.user_init(ctx.author.id)
 
     guild = ctx.guild
@@ -107,6 +106,26 @@ async def items(ctx):
     
     items_embed = discord.Embed(title=ctx.author.display_name+"'s Items", description=info).set_thumbnail(url=ctx.author.avatar).add_field(name="Showing", value="Items Owned").add_field(name="Team Stability", value=str(stability*100)+"%")
     await ctx.send(embed=items_embed)
+
+@bot.command(
+    help="Usage: ricky select <itemname>. Select the item for further use."
+)
+async def select(ctx, *args):
+    args = " ".join(args)
+    user_handle.user_init(ctx.author.id)
+
+    selected_item = user_handle.select(ctx.author.id, args)
+
+    if selected_item == None:
+        await ctx.send("Can't select the item: it doesn't exist or you don't own it.")
+        return
+
+    #print(selected_item)
+
+    image_file = discord.File("img/"+selected_item["id"]+".png", filename=selected_item["id"]+".png")
+    #print("img/"+selected_item["id"]+".png", selected_item["id"]+".png", "attachement://"+selected_item["id"]+".png")
+    selection_embed = discord.Embed(title=ctx.author.display_name+"'s Selected Item", description="**"+selected_item["name"]+"** has now been selected.").set_thumbnail(url=ctx.author.avatar).set_image(url="attachment://"+selected_item["id"]+".png")
+    await ctx.send(embed=selection_embed, file=image_file)
     
 load_dotenv()
 
