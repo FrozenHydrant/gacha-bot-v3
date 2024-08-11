@@ -36,7 +36,7 @@ async def gacha(ctx):
         wish_embed = discord.Embed(title=ctx.author.display_name+"'s "+item["name"], description="*"+item["description"]+"*", colour=COLOURS[item["rarity"]]).set_footer(text=item["source"]).set_image(url="attachment://"+item["id"]+".png").set_thumbnail(url=ctx.author.avatar).add_field(name="Rarity", value=item["rarity"]).add_field(name="Collection", value=item["collection"])
                                                                                                                                                                                                                                                                                                                                                                    
 
-        await ctx.send(ctx.author.mention + ", wishes left: " + user_handle.wishes(ctx.author.id), file=image_file, embed=wish_embed)
+        await ctx.send(ctx.author.mention + ", wishes left: " + str(user_handle.wishes(ctx.author.id)), file=image_file, embed=wish_embed)
 
 @bot.command(
     help="Usage: ricky progress. Checks collection progress."
@@ -52,6 +52,20 @@ async def progress(ctx):
 
     await ctx.send(embed=collections_embed)
 
+@bot.command(
+    help="Usage: ricky ability <character name>. Activates the ability of the given item."
+)
+async def ability(ctx, *args):
+    args = " ".join(args)
+    user_handle.user_init(ctx.author.id)
+
+    ability_info, ability_success = user_handle.ability(ctx.author.id, args)
+    user_handle.save_users()
+
+    ability_embed = discord.Embed(title="Ability Used", description=ctx.author.display_name + ", " + ability_info).set_thumbnail(url=ctx.author.avatar).add_field(name="Success", value=ability_success)
+    
+    await ctx.send(embed=ability_embed)
+    
 @bot.command(
     help="Usage: ricky attack <username>. Attacks the specified person."
 )
@@ -108,24 +122,37 @@ async def items(ctx):
     await ctx.send(embed=items_embed)
 
 @bot.command(
-    help="Usage: ricky select <itemname>. Select the item for further use."
+    help="Usage: ricky show <itemname>. Shows the item."
 )
-async def select(ctx, *args):
+async def show(ctx, *args):
     args = " ".join(args)
     user_handle.user_init(ctx.author.id)
 
     selected_item = user_handle.select(ctx.author.id, args)
+    user_handle.save_users()
 
     if selected_item == None:
-        await ctx.send("Can't select the item: it doesn't exist or you don't own it.")
+        await ctx.send("Can't show the item: it doesn't exist or you don't own it.")
         return
 
     #print(selected_item)
 
     image_file = discord.File("img/"+selected_item["id"]+".png", filename=selected_item["id"]+".png")
     #print("img/"+selected_item["id"]+".png", selected_item["id"]+".png", "attachement://"+selected_item["id"]+".png")
-    selection_embed = discord.Embed(title=ctx.author.display_name+"'s Selected Item", description="**"+selected_item["name"]+"** has now been selected.").set_thumbnail(url=ctx.author.avatar).set_image(url="attachment://"+selected_item["id"]+".png")
+    selection_embed = discord.Embed(title=ctx.author.display_name+"'s Item", description="**"+selected_item["name"]+"** is now being displayed.\n\n*"+selected_item["description"]+"*\n\n"+"Ability: **"+selected_item["ability"]+"**").set_thumbnail(url=ctx.author.avatar).set_image(url="attachment://"+selected_item["id"]+".png")
     await ctx.send(embed=selection_embed, file=image_file)
+
+@bot.command(
+    help="Usage: ricky claim. Creates a new land claim (and shows an existing one)"
+)
+async def claim(ctx):
+    user_handle.user_init(ctx.author.id)
+    claim_info = user_handle.create_land_claim(ctx.author.id)
+
+    claim_embed = discord.Embed(title=ctx.author.display_name+"'s Land Claim", description=claim_info)
+    user_handle.save_users()
+    await ctx.send(embed=claim_embed)
+
     
 load_dotenv()
 

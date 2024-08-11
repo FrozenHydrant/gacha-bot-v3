@@ -1,0 +1,10 @@
+{
+    "hatsune_miku": {
+        "targeted": false,
+        "cooldown": 3,
+        "effects": [
+            {"path": [], "value": "wish_amount", "factors": [3, ["collections", "harmony"]]}
+        ]
+
+    }
+}

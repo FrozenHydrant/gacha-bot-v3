@@ -4,6 +4,9 @@ from datetime import datetime, timedelta
 from json.decoder import JSONDecodeError
 import copy
 import util
+from pynoise.noisemodule import Perlin
+from pynoise.noiseutil import noise_map_plane
+import numpy as np
 
 class GachaHandle:
     def load_shards(self):
@@ -16,6 +19,7 @@ class GachaHandle:
         self.collections_dict = {}
         self.rarities_dict = {}
         self.currencies_dict = {}
+        self.abilities_dict = {}
         self.total_shards = 0
         with open("options.json", "r") as rarities:
             all_options = json.loads(rarities.read())
@@ -64,7 +68,14 @@ class GachaHandle:
             print(self.shards_dict, self.shards_rarities, " have been loaded.\n")
             print(self.collection_counts, self.collections_dict, " have also been loaded.\n")
 
+        with open("abilities.json", "r") as abilities_json:
+            self.abilities_dict = json.loads(abilities_json.read())
+            print(self.abilities_dict, " has been loaded.\n")
+
     def get_gacha_option(self):
+        # But why not?
+        random.seed()
+        
         pull = random.random()
         total = 0
         i = -1
@@ -85,6 +96,14 @@ class GachaHandle:
                 return item
         return None
 
+    def has_ability(self, item_id):
+        if item_id in self.abilities_dict:
+            return True
+        return False
+
+    def get_ability(self, item_id):
+        return copy.copy(self.abilities_dict[item_id])
+    
     # Please do not modify the returned values. That would not be nice.
     def get_item_info(self, item):
         return copy.copy(self.shards_dict[item])
@@ -106,6 +125,7 @@ class GachaHandle:
 
 class UserHandle:
     def __init__(self):
+        self.perlin = Perlin()
         self.HOURS = 3.5
         #self.POWERS = {"Common": 1, "Rare": 3, "Epic": 9, "Legendary": 27}
         #self.LOOT = {"Cobblestone": "gears", "Pixiedust": "sparkles", "Harmony": "haloes"}
@@ -136,11 +156,23 @@ class UserHandle:
         if "last_wish_time" not in self.users[user_id]:
             self.users[user_id]["last_wish_time"] = datetime.strftime(datetime.now() - timedelta(hours=10*self.HOURS), "%y-%m-%d %H:%M:%S")
         if "wish_amount" not in self.users[user_id]:
-            self.users[user_id]["wish_amount"] = "0"
+            self.users[user_id]["wish_amount"] = 0
         if "inventory" not in self.users[user_id]:
             self.users[user_id]["inventory"] = {}
         if "collections" not in self.users[user_id]:
             self.users[user_id]["collections"] = {}
+
+            # Initialize collections
+            for item in self.users[user_id]["inventory"]:
+                item_info = self.gacha_handle.get_item_info(item)
+
+                if item_info["collection"] not in self.users[user_id]["collections"]:
+                    self.users[user_id]["collections"][item_info["collection"]] = 0
+                self.users[user_id]["collections"][item_info["collection"]] += 1
+        if "world" not in self.users[user_id]:
+            self.users[user_id]["world"] = {}
+
+            self.users[user_id]["world"]["exists"] = False
         if "total_items" not in self.users[user_id]:
             self.users[user_id]["total_items"] = 0
         if "statuses" not in self.users[user_id]:
@@ -171,7 +203,7 @@ class UserHandle:
         
         # Update the wish count and wish time
         self.users[user_id]["last_wish_time"] = datetime.strftime(datetime.now(), "%y-%m-%d %H:%M:%S")
-        self.users[user_id]["wish_amount"] = str(wishes)
+        self.users[user_id]["wish_amount"] = wishes
 
         return wishes
 
@@ -185,7 +217,7 @@ class UserHandle:
 
             # Update the wish count after wishing
             wishes -= 1
-            self.users[user_id]["wish_amount"] = str(wishes)
+            self.users[user_id]["wish_amount"] = wishes
 
             # Acquire the item
             item = self.gacha_handle.get_gacha_option()
@@ -259,11 +291,70 @@ class UserHandle:
         totality = ""
         for item in statuses:
             time_left = self.update_item_status(user_id, item)
+            item_info = ""
             if time_left is not None:
-                totality += self.gacha_handle.get_item_info(item)["name"] + " - **" + statuses[item]["name"] + " (" + util.timeformat(time_left, "d", "h", "m") + ")**" + "\n"
+                item_info = self.gacha_handle.get_item_info(item)["name"] + " - **" + statuses[item]["name"] + " (" + util.timeformat(time_left, "d", "h", "m") + ")**"
             else:
-                totality += self.gacha_handle.get_item_info(item)["name"] + " - **" + statuses[item]["name"] + "**" + "\n"
+                # Crazy string mechanics
+                if self.gacha_handle.has_ability(self.gacha_handle.get_item_info(item)["id"]):
+                    item_info = "Special Ability "
+                item_info = self.gacha_handle.get_item_info(item)["name"] + " - **" + item_info + statuses[item]["name"] + "**"
+
+            item_info += "\n"
+            totality += item_info
         return totality
+
+    def ability(self, user_id, item_name):
+        user_id = str(user_id)
+
+        ability_item = self.select(user_id, item_name)
+        if ability_item == None:
+            return ("Invalid item name supplied.", False)
+        
+        if not self.gacha_handle.has_ability(ability_item["id"]):
+            return ("The selected unit has no ability.", False)
+
+        # Let's avoid using an eval here.
+        ability = self.gacha_handle.get_ability(ability_item["id"])
+
+        if self.users[user_id]["statuses"][ability_item["id"]]["name"] != "Available":
+            return ("The selected unit is on cooldown.", False)
+
+        actual_target = None
+        #if ability["targeted"]:      
+        #    if target_id is None:
+        #        return "Invalid target."
+        #    actual_target = target_id
+        #else:
+        actual_target = user_id
+
+        for effect in ability["effects"]:
+            calculated_value = 1
+            for change in effect["factors"]:
+                new_value = self.users[actual_target]
+                if isinstance(change, list):
+                    for thing in change:
+                        if thing in new_value:
+                            new_value = new_value[thing]
+                        else:
+                            new_value = 1
+                            break
+                else:
+                    new_value = change
+                calculated_value *= new_value
+
+            to_change = self.users[actual_target]
+            for select in effect["path"]:
+                to_change = to_change[select]
+            to_change[effect["value"]] = float(to_change[effect["value"]])
+            to_change[effect["value"]] += calculated_value
+            
+            #print(calculated_value)
+                
+        
+        self.users[user_id]["statuses"][ability_item["id"]]["name"] = "Cooldown"
+        self.users[user_id]["statuses"][ability_item["id"]]["until"] = datetime.strftime(datetime.now() + timedelta(hours=ability["cooldown"]), "%y-%m-%d %H:%M:%S")
+        return ("Successfully used " + ability_item["name"] + "'s ability and placed them on a " + str(ability["cooldown"]) + "h cooldown.", True) 
 
     def get_available_items(self, user_id):
         new_inventory = []
@@ -274,6 +365,40 @@ class UserHandle:
                 new_inventory.append(item)
 
         return new_inventory
+
+    def vivify(self, element):
+        if element < -0.25:
+            return ":blue_square:"
+        elif element < -0.05:
+            return ":yellow_square:"
+        elif element < 0.2:
+            return ":green_square:"
+        elif element < 0.35:
+            return ":mountain:"
+        return ":mountain_snow:"
+
+    def create_land_claim(self, user_id):
+        user_id = str(user_id)
+        random.seed()
+        x = None
+        z = None
+        if not self.users[user_id]["world"]["exists"]:
+            self.users[user_id]["world"]["x"] = random.randrange(0, 1000000)
+            self.users[user_id]["world"]["z"] = random.randrange(0, 1000000)
+        x = self.users[user_id]["world"]["x"]
+        z = self.users[user_id]["world"]["z"]
+        self.users[user_id]["world"]["exists"] = True
+        noisemap = self.calculate_tiles(x, z)
+        vivification = np.vectorize(self.vivify)
+        noisemap = vivification(noisemap)
+
+        output = ""
+        for i in noisemap:
+            for j in i:
+                output += j
+            output += "\n"
+        return output
+        
 
     def calculate_stability(self, user_id):
         user_id = str(user_id)
@@ -374,7 +499,11 @@ class UserHandle:
             winning_person = defender_name + " wins"
             
         return (totally, winning_person, given_loot)
-            
+
+    def calculate_tiles(self, x, z):
+        random.seed(2)
+        noisemap = np.array(noise_map_plane(width=12, height=12, lower_x=x, upper_x=x+1, lower_z=z, upper_z=z+1, source=self.perlin)).reshape(12, 12)
+        return noisemap
             
             
         
