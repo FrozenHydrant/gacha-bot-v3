@@ -8,6 +8,7 @@ from pynoise.noisemodule import Perlin
 from pynoise.noiseutil import noise_map_plane
 import numpy as np
 import os
+from threading import Lock
 
 class GachaHandle:
     def load_shards(self):
@@ -132,6 +133,8 @@ class UserHandle:
         self.gacha_handle = GachaHandle()
         self.gacha_handle.load_shards()
 
+        self.users_lock = Lock()
+
         with open("phrases.json", "r") as phrases_json:
             phrases = json.loads(phrases_json.read())
             self.phrases = phrases["phrases"]
@@ -159,48 +162,49 @@ class UserHandle:
     def user_init(self, user_id):
         # Place all necessary fields if not present
         user_id = str(user_id)
-        if user_id not in self.users:
-            self.users[user_id] = {}
-        if "last_wish_time" not in self.users[user_id]:
-            self.users[user_id]["last_wish_time"] = datetime.strftime(datetime.now() - timedelta(hours=10*self.HOURS), "%y-%m-%d %H:%M:%S")
-        if "wish_amount" not in self.users[user_id]:
-            self.users[user_id]["wish_amount"] = 0
-        if "inventory" not in self.users[user_id]:
-            self.users[user_id]["inventory"] = {}
-        if "collections" not in self.users[user_id]:
-            self.users[user_id]["collections"] = {}
+        with self.users_lock:
+            if user_id not in self.users:
+                self.users[user_id] = {}
+            if "last_wish_time" not in self.users[user_id]:
+                self.users[user_id]["last_wish_time"] = datetime.strftime(datetime.now() - timedelta(hours=10*self.HOURS), "%y-%m-%d %H:%M:%S")
+            if "wish_amount" not in self.users[user_id]:
+                self.users[user_id]["wish_amount"] = 0
+            if "inventory" not in self.users[user_id]:
+                self.users[user_id]["inventory"] = {}
+            if "collections" not in self.users[user_id]:
+                self.users[user_id]["collections"] = {}
 
-            # Initialize collections
+                # Initialize collections
+                for item in self.users[user_id]["inventory"]:
+                    item_info = self.gacha_handle.get_item_info(item)
+
+                    if item_info["collection"] not in self.users[user_id]["collections"]:
+                        self.users[user_id]["collections"][item_info["collection"]] = 0
+                    self.users[user_id]["collections"][item_info["collection"]] += 1
+            if "world" not in self.users[user_id]:
+                self.users[user_id]["world"] = {}
+
+                self.users[user_id]["world"]["exists"] = False
+            if "total_items" not in self.users[user_id]:
+                self.users[user_id]["total_items"] = 0
+            if "statuses" not in self.users[user_id]:
+                self.users[user_id]["statuses"] = {}
+            if "selected" not in self.users[user_id]:
+                self.users[user_id]["selected"] = ""
+            if "sparkles" not in self.users[user_id]:
+                self.users[user_id]["sparkles"] = 0
+            if "gears" not in self.users[user_id]:
+                self.users[user_id]["gears"] = 0
+            if "haloes" not in self.users[user_id]:
+                self.users[user_id]["haloes"] = 0
+
             for item in self.users[user_id]["inventory"]:
-                item_info = self.gacha_handle.get_item_info(item)
-
-                if item_info["collection"] not in self.users[user_id]["collections"]:
-                    self.users[user_id]["collections"][item_info["collection"]] = 0
-                self.users[user_id]["collections"][item_info["collection"]] += 1
-        if "world" not in self.users[user_id]:
-            self.users[user_id]["world"] = {}
-
-            self.users[user_id]["world"]["exists"] = False
-        if "total_items" not in self.users[user_id]:
-            self.users[user_id]["total_items"] = 0
-        if "statuses" not in self.users[user_id]:
-            self.users[user_id]["statuses"] = {}
-        if "selected" not in self.users[user_id]:
-            self.users[user_id]["selected"] = ""
-        if "sparkles" not in self.users[user_id]:
-            self.users[user_id]["sparkles"] = 0
-        if "gears" not in self.users[user_id]:
-            self.users[user_id]["gears"] = 0
-        if "haloes" not in self.users[user_id]:
-            self.users[user_id]["haloes"] = 0
-
-        for item in self.users[user_id]["inventory"]:
-            if item not in self.users[user_id]["statuses"]:
-                self.users[user_id]["statuses"][item] = {"name": "Available"}
+                if item not in self.users[user_id]["statuses"]:
+                    self.users[user_id]["statuses"][item] = {"name": "Available"}
 
     def update_wishes(self, user_id):
         user_id = str(user_id)
-        
+
         # Determine the time elapsed since the user cast a wish
         last_time = datetime.strptime(self.users[user_id]["last_wish_time"], "%y-%m-%d %H:%M:%S")
         time_elapsed = datetime.now() - last_time
@@ -217,38 +221,40 @@ class UserHandle:
 
     def user_gacha(self, user_id):
         user_id = str(user_id)
-        
-        wishes = self.update_wishes(user_id)
-        # If we have a wish, proceed
-        if wishes >= 1:
-            print("Wish is ready. Commencing sequence.")
 
-            # Update the wish count after wishing
-            wishes -= 1
-            self.users[user_id]["wish_amount"] = wishes
+        with self.users_lock:
+            wishes = self.update_wishes(user_id)
+            # If we have a wish, proceed
+            if wishes >= 1:
+                print("Wish is ready. Commencing sequence.")
 
-            # Acquire the item
-            item = self.gacha_handle.get_gacha_option()
-            if item not in self.users[user_id]["inventory"]:
-                self.users[user_id]["inventory"][item] = 0
+                # Update the wish count after wishing
+                wishes -= 1
+                self.users[user_id]["wish_amount"] = wishes
 
-                # Increase collection count if this is the first of that item
-                collection = self.gacha_handle.get_item_info(item)["collection"]
-                if collection not in self.users[user_id]["collections"]:
-                    self.users[user_id]["collections"][collection] = 0
-                self.users[user_id]["collections"][collection] += 1
+                # Acquire the item
+                item = self.gacha_handle.get_gacha_option()
+                if item not in self.users[user_id]["inventory"]:
+                    self.users[user_id]["inventory"][item] = 0
 
-                self.users[user_id]["total_items"] += 1
-                
-            self.users[user_id]["inventory"][item] += 1
+                    # Increase collection count if this is the first of that item
+                    collection = self.gacha_handle.get_item_info(item)["collection"]
+                    if collection not in self.users[user_id]["collections"]:
+                            self.users[user_id]["collections"][collection] = 0
+                    self.users[user_id]["collections"][collection] += 1
 
-            return (True, self.gacha_handle.get_item_info(item))
-        else:
-            # Give the time at which one wish will be available (at a rate of 3.5 hours per wish)
-            return (False, datetime.now() + timedelta(hours=self.HOURS)*(1-wishes))
+                    self.users[user_id]["total_items"] += 1
+                    
+                self.users[user_id]["inventory"][item] += 1
+
+                return (True, self.gacha_handle.get_item_info(item))
+            else:
+                # Give the time at which one wish will be available (at a rate of 3.5 hours per wish)
+                return (False, datetime.now() + timedelta(hours=self.HOURS)*(1-wishes))
 
     def select(self, user_id, item):
         user_id = str(user_id)
+        
         selected_item_id = self.gacha_handle.get_id_from_name(item)
 
         if selected_item_id == None:
@@ -256,8 +262,9 @@ class UserHandle:
 
         if selected_item_id not in self.users[user_id]["inventory"]:
             return None
-        
-        self.users[user_id]["selected"] = selected_item_id
+
+        #self.users[user_id]["selected"] = selected_item_id
+                
         return self.gacha_handle.get_item_info(selected_item_id)
         
 
@@ -268,15 +275,16 @@ class UserHandle:
     def collections(self, user_id):
         user_id = str(user_id)
 
-        my_collections = copy.copy(self.users[user_id]["collections"])
-        all_collections = self.gacha_handle.get_collections()
-        collections_info = {}
-        for collection_id in all_collections:
-            collection_name = self.gacha_handle.get_collection_info(collection_id)["name"]
-            if collection_id in my_collections:
-                collections_info[collection_name] = (my_collections[collection_id], all_collections[collection_id])
-            else:
-                collections_info[collection_name] = (0, all_collections[collection_id])
+        with self.users_lock:
+            my_collections = copy.copy(self.users[user_id]["collections"])
+            all_collections = self.gacha_handle.get_collections()
+            collections_info = {}
+            for collection_id in all_collections:
+                collection_name = self.gacha_handle.get_collection_info(collection_id)["name"]
+                if collection_id in my_collections:
+                    collections_info[collection_name] = (my_collections[collection_id], all_collections[collection_id])
+                else:
+                    collections_info[collection_name] = (0, all_collections[collection_id])
 
         #print(collections_info)
         return collections_info
@@ -290,78 +298,82 @@ class UserHandle:
         if time_left.days < 0:
             statuses[item]["name"] = "Available"
             return None
+        
         return time_left
 
 
     def itemslist(self, user_id):
         user_id = str(user_id)
-        statuses = self.users[user_id]["statuses"]
-        totality = ""
-        for item in statuses:
-            time_left = self.update_item_status(user_id, item)
-            item_info = ""
-            if time_left is not None:
-                item_info = self.gacha_handle.get_item_info(item)["name"] + " - **" + statuses[item]["name"] + " (" + util.timeformat(time_left, "d", "h", "m") + ")**"
-            else:
-                # Crazy string mechanics
-                if self.gacha_handle.has_ability(self.gacha_handle.get_item_info(item)["id"]):
-                    item_info = "Special Ability "
-                item_info = self.gacha_handle.get_item_info(item)["name"] + " - **" + item_info + statuses[item]["name"] + "**"
 
-            item_info += "\n"
-            totality += item_info
+        with self.users_lock:
+            statuses = self.users[user_id]["statuses"]
+            totality = ""
+            for item in statuses:
+                time_left = self.update_item_status(user_id, item)
+                item_info = ""
+                if time_left is not None:
+                    item_info = self.gacha_handle.get_item_info(item)["name"] + " - **" + statuses[item]["name"] + " (" + util.timeformat(time_left, "d", "h", "m") + ")**"
+                else:
+                    # Crazy string mechanics
+                    if self.gacha_handle.has_ability(self.gacha_handle.get_item_info(item)["id"]):
+                        item_info = "Special Ability "
+                    item_info = self.gacha_handle.get_item_info(item)["name"] + " - **" + item_info + statuses[item]["name"] + "**"
+
+                item_info += "\n"
+                totality += item_info
         return totality
 
     def ability(self, user_id, item_name):
         user_id = str(user_id)
 
-        ability_item = self.select(user_id, item_name)
-        if ability_item == None:
-            return ("Invalid item name supplied.", False)
-        
-        if not self.gacha_handle.has_ability(ability_item["id"]):
-            return ("The selected unit has no ability.", False)
-
-        # Let's avoid using an eval here.
-        ability = self.gacha_handle.get_ability(ability_item["id"])
-
-        if self.users[user_id]["statuses"][ability_item["id"]]["name"] != "Available":
-            return ("The selected unit is on cooldown.", False)
-
-        actual_target = None
-        #if ability["targeted"]:      
-        #    if target_id is None:
-        #        return "Invalid target."
-        #    actual_target = target_id
-        #else:
-        actual_target = user_id
-
-        for effect in ability["effects"]:
-            calculated_value = 1
-            for change in effect["factors"]:
-                new_value = self.users[actual_target]
-                if isinstance(change, list):
-                    for thing in change:
-                        if thing in new_value:
-                            new_value = new_value[thing]
-                        else:
-                            new_value = 1
-                            break
-                else:
-                    new_value = change
-                calculated_value *= new_value
-
-            to_change = self.users[actual_target]
-            for select in effect["path"]:
-                to_change = to_change[select]
-            to_change[effect["value"]] = float(to_change[effect["value"]])
-            to_change[effect["value"]] += calculated_value
+        with self.users_lock:
+            ability_item = self.select(user_id, item_name)
+            if ability_item == None:
+                return ("Invalid item name supplied.", False)
             
-            #print(calculated_value)
+            if not self.gacha_handle.has_ability(ability_item["id"]):
+                return ("The selected unit has no ability.", False)
+
+            # Let's avoid using an eval here.
+            ability = self.gacha_handle.get_ability(ability_item["id"])
+
+            if self.users[user_id]["statuses"][ability_item["id"]]["name"] != "Available":
+                return ("The selected unit is on cooldown.", False)
+
+            actual_target = None
+            #if ability["targeted"]:      
+            #    if target_id is None:
+            #        return "Invalid target."
+            #    actual_target = target_id
+            #else:
+            actual_target = user_id
+
+            for effect in ability["effects"]:
+                calculated_value = 1
+                for change in effect["factors"]:
+                    new_value = self.users[actual_target]
+                    if isinstance(change, list):
+                        for thing in change:
+                            if thing in new_value:
+                                new_value = new_value[thing]
+                            else:
+                                new_value = 1
+                                break
+                    else:
+                        new_value = change
+                    calculated_value *= new_value
+
+                to_change = self.users[actual_target]
+                for select in effect["path"]:
+                    to_change = to_change[select]
+                to_change[effect["value"]] = float(to_change[effect["value"]])
+                to_change[effect["value"]] += calculated_value
                 
-        
-        self.users[user_id]["statuses"][ability_item["id"]]["name"] = "Cooldown"
-        self.users[user_id]["statuses"][ability_item["id"]]["until"] = datetime.strftime(datetime.now() + timedelta(hours=ability["cooldown"]), "%y-%m-%d %H:%M:%S")
+                #print(calculated_value)
+                    
+            
+            self.users[user_id]["statuses"][ability_item["id"]]["name"] = "Cooldown"
+            self.users[user_id]["statuses"][ability_item["id"]]["until"] = datetime.strftime(datetime.now() + timedelta(hours=ability["cooldown"]), "%y-%m-%d %H:%M:%S")
         return ("Successfully used " + ability_item["name"] + "'s ability and placed them on a " + str(ability["cooldown"]) + "h cooldown.", True) 
 
     def get_available_items(self, user_id):
@@ -390,12 +402,13 @@ class UserHandle:
         random.seed()
         x = None
         z = None
-        if not self.users[user_id]["world"]["exists"]:
-            self.users[user_id]["world"]["x"] = random.randrange(0, 1000000)
-            self.users[user_id]["world"]["z"] = random.randrange(0, 1000000)
-        x = self.users[user_id]["world"]["x"]
-        z = self.users[user_id]["world"]["z"]
-        self.users[user_id]["world"]["exists"] = True
+        with self.users_lock:
+            if not self.users[user_id]["world"]["exists"]:
+                self.users[user_id]["world"]["x"] = random.randrange(0, 1000000)
+                self.users[user_id]["world"]["z"] = random.randrange(0, 1000000)
+            x = self.users[user_id]["world"]["x"]
+            z = self.users[user_id]["world"]["z"]
+            self.users[user_id]["world"]["exists"] = True
         noisemap = self.calculate_tiles(x, z)
         vivification = np.vectorize(self.vivify)
         noisemap = vivification(noisemap)
@@ -419,92 +432,94 @@ class UserHandle:
     def attack(self, attacker_id, attacker_name, defender_id, defender_name):
         attacker_id = str(attacker_id)
         defender_id = str(defender_id)
-        attack_inventory = self.get_available_items(attacker_id)
-        defense_inventory = self.get_available_items(defender_id)
 
-        attack_stability = self.calculate_stability(attacker_id)
-        defense_stability = self.calculate_stability(defender_id)
+        with self.users_lock:
+            attack_inventory = self.get_available_items(attacker_id)
+            defense_inventory = self.get_available_items(defender_id)
 
-        if len(attack_inventory) < 1:
-            return (attacker_name + " had no units. What a shame.", "", {})
-        if len(defense_inventory) < 1:
-            if len(self.users[defender_id]["inventory"]) < 1:
-                return (defender_name + " can't defend themselves.", "", {})
+            attack_stability = self.calculate_stability(attacker_id)
+            defense_stability = self.calculate_stability(defender_id)
+
+            if len(attack_inventory) < 1:
+                return (attacker_name + " had no units. What a shame.", "", {})
+            if len(defense_inventory) < 1:
+                if len(self.users[defender_id]["inventory"]) < 1:
+                    return (defender_name + " can't defend themselves.", "", {})
+                else:
+                    return (defender_name + " can't defend themselves.", "", {})
+
+            attack_lives = 5
+            defense_lives = 5
+            totally = ""
+
+            # Initialize the given loot with all possible loots
+            given_loot = {}
+            #for loot in self.LOOT_EN.values():
+            #    given_loot[loot] = 0
+
+            # Shuffle the lists, based on https://stackoverflow.com/questions/10048069/what-is-the-most-pythonic-way-to-pop-a-random-element-from-a-list
+            random.shuffle(attack_inventory)
+            random.shuffle(defense_inventory)
+            
+            while attack_lives > 0 and defense_lives > 0 and len(attack_inventory) > 0 and len(defense_inventory) > 0:
+                # Get the attacking unit, defending unit, and amount of both
+                attack_unit = self.gacha_handle.get_item_info(attack_inventory.pop())
+                defense_unit = self.gacha_handle.get_item_info(defense_inventory.pop())
+                attack_amount = self.users[attacker_id]["inventory"][attack_unit["id"]]
+                defense_amount = self.users[defender_id]["inventory"][defense_unit["id"]]
+
+                attack_strength = self.gacha_handle.get_rarity_info(attack_unit["rarity"])["strength"] * attack_amount
+                defense_strength = self.gacha_handle.get_rarity_info(defense_unit["rarity"])["strength"] * defense_amount
+
+                true_attack_strength = (random.random() * (1-attack_stability) + attack_stability) * attack_strength
+                true_defense_strength = (random.random() * (1-defense_stability) + defense_stability) * defense_strength
+
+                #print(attack_unit["name"], defense_unit["name"], attack_strength, defense_strength, attack_stability, defense_stability, true_attack_strength, true_defense_strength) 
+                phrase = random.choice(self.phrases)
+                win = None
+                win_unit = None
+                win_amount = None
+                loss = None
+                loss_unit = None
+                loss_amount = None
+                if true_attack_strength > true_defense_strength:
+                    win = attacker_name
+                    win_unit = attack_unit["name"]
+                    win_amount = attack_amount
+                    loss = defender_name
+                    loss_unit = defense_unit["name"]
+                    loss_amount = defense_amount
+                    defense_lives -= 1
+                    self.users[defender_id]["statuses"][defense_unit["id"]]["name"] = "Damaged"
+                    self.users[defender_id]["statuses"][defense_unit["id"]]["until"] = datetime.strftime(datetime.now() + timedelta(hours=1), "%y-%m-%d %H:%M:%S")
+
+                    # Award loot for slain enemies
+                    self.users[attacker_id][self.gacha_handle.get_collection_info(defense_unit["collection"])["currency"]] += self.gacha_handle.get_rarity_info(defense_unit["rarity"])["strength"]
+                    currency_name = self.gacha_handle.get_currency_info(self.gacha_handle.get_collection_info(defense_unit["collection"])["currency"])["name"]
+                    if currency_name not in given_loot:
+                        given_loot[currency_name] = 0
+                    given_loot[currency_name] += self.gacha_handle.get_rarity_info(defense_unit["rarity"])["strength"]
+                    
+                else:
+                    loss = attacker_name
+                    loss_unit = attack_unit["name"]
+                    loss_amount = attack_amount
+                    win = defender_name
+                    win_unit = defense_unit["name"]
+                    win_amount = defense_amount
+                    attack_lives -= 1
+                    self.users[attacker_id]["statuses"][attack_unit["id"]]["name"] = "Damaged"
+                    self.users[attacker_id]["statuses"][attack_unit["id"]]["until"] = datetime.strftime(datetime.now() + timedelta(hours=1), "%y-%m-%d %H:%M:%S")
+
+                totally += "**" + win + "'s " + win_unit + " -> " + loss + "'s " + loss_unit + "**\n"    
+                totally += phrase.replace("<win>", win).replace("<win_unit>", win_unit + "**x**" + str(win_amount)).replace("<loss>", loss).replace("<loss_unit>", loss_unit + "**x**" + str(loss_amount))
+                totally += "\n\n"
+
+            winning_person = None
+            if defense_lives < attack_lives:
+                winning_person = attacker_name + " wins"
             else:
-                return (defender_name + " can't defend themselves.", "", {})
-
-        attack_lives = 5
-        defense_lives = 5
-        totally = ""
-
-        # Initialize the given loot with all possible loots
-        given_loot = {}
-        #for loot in self.LOOT_EN.values():
-        #    given_loot[loot] = 0
-
-        # Shuffle the lists, based on https://stackoverflow.com/questions/10048069/what-is-the-most-pythonic-way-to-pop-a-random-element-from-a-list
-        random.shuffle(attack_inventory)
-        random.shuffle(defense_inventory)
-        
-        while attack_lives > 0 and defense_lives > 0 and len(attack_inventory) > 0 and len(defense_inventory) > 0:
-            # Get the attacking unit, defending unit, and amount of both
-            attack_unit = self.gacha_handle.get_item_info(attack_inventory.pop())
-            defense_unit = self.gacha_handle.get_item_info(defense_inventory.pop())
-            attack_amount = self.users[attacker_id]["inventory"][attack_unit["id"]]
-            defense_amount = self.users[defender_id]["inventory"][defense_unit["id"]]
-
-            attack_strength = self.gacha_handle.get_rarity_info(attack_unit["rarity"])["strength"] * attack_amount
-            defense_strength = self.gacha_handle.get_rarity_info(defense_unit["rarity"])["strength"] * defense_amount
-
-            true_attack_strength = (random.random() * (1-attack_stability) + attack_stability) * attack_strength
-            true_defense_strength = (random.random() * (1-defense_stability) + defense_stability) * defense_strength
-
-            #print(attack_unit["name"], defense_unit["name"], attack_strength, defense_strength, attack_stability, defense_stability, true_attack_strength, true_defense_strength) 
-            phrase = random.choice(self.phrases)
-            win = None
-            win_unit = None
-            win_amount = None
-            loss = None
-            loss_unit = None
-            loss_amount = None
-            if true_attack_strength > true_defense_strength:
-                win = attacker_name
-                win_unit = attack_unit["name"]
-                win_amount = attack_amount
-                loss = defender_name
-                loss_unit = defense_unit["name"]
-                loss_amount = defense_amount
-                defense_lives -= 1
-                self.users[defender_id]["statuses"][defense_unit["id"]]["name"] = "Damaged"
-                self.users[defender_id]["statuses"][defense_unit["id"]]["until"] = datetime.strftime(datetime.now() + timedelta(hours=1), "%y-%m-%d %H:%M:%S")
-
-                # Award loot for slain enemies
-                self.users[attacker_id][self.gacha_handle.get_collection_info(defense_unit["collection"])["currency"]] += self.gacha_handle.get_rarity_info(defense_unit["rarity"])["strength"]
-                currency_name = self.gacha_handle.get_currency_info(self.gacha_handle.get_collection_info(defense_unit["collection"])["currency"])["name"]
-                if currency_name not in given_loot:
-                    given_loot[currency_name] = 0
-                given_loot[currency_name] += self.gacha_handle.get_rarity_info(defense_unit["rarity"])["strength"]
-                
-            else:
-                loss = attacker_name
-                loss_unit = attack_unit["name"]
-                loss_amount = attack_amount
-                win = defender_name
-                win_unit = defense_unit["name"]
-                win_amount = defense_amount
-                attack_lives -= 1
-                self.users[attacker_id]["statuses"][attack_unit["id"]]["name"] = "Damaged"
-                self.users[attacker_id]["statuses"][attack_unit["id"]]["until"] = datetime.strftime(datetime.now() + timedelta(hours=1), "%y-%m-%d %H:%M:%S")
-
-            totally += "**" + win + "'s " + win_unit + " -> " + loss + "'s " + loss_unit + "**\n"    
-            totally += phrase.replace("<win>", win).replace("<win_unit>", win_unit + "**x**" + str(win_amount)).replace("<loss>", loss).replace("<loss_unit>", loss_unit + "**x**" + str(loss_amount))
-            totally += "\n\n"
-
-        winning_person = None
-        if defense_lives < attack_lives:
-            winning_person = attacker_name + " wins"
-        else:
-            winning_person = defender_name + " wins"
+                winning_person = defender_name + " wins"
             
         return (totally, winning_person, given_loot)
 
@@ -516,14 +531,16 @@ class UserHandle:
 
     def save_by_id(self, user_id):
         user_id = str(user_id)
-        write_directory = os.path.join(os.getcwd(), "users")
-        save_path = os.path.join(write_directory, user_id+".json")
-        if os.path.exists(save_path):
-            with open(save_path, "w") as save_file:
-                save_file.write(json.dumps(self.users[user_id], indent=4))
-        else:
-            with open(save_path, "x") as save_file:
-                save_file.write(json.dumps(self.users[user_id], indent=4))
+
+        with self.users_lock:
+            write_directory = os.path.join(os.getcwd(), "users")
+            save_path = os.path.join(write_directory, user_id+".json")
+            if os.path.exists(save_path):
+                with open(save_path, "w") as save_file:
+                    save_file.write(json.dumps(self.users[user_id], indent=4))
+            else:
+                with open(save_path, "x") as save_file:
+                    save_file.write(json.dumps(self.users[user_id], indent=4))
 
         
     def save_users(self):

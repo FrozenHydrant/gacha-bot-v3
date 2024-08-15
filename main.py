@@ -5,7 +5,6 @@ import os
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import util
-from threading import Lock
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -17,8 +16,6 @@ user_handle.load_users()
 
 COLOURS = {"Common": discord.Colour.light_gray(), "Rare": discord.Colour.blue(), "Epic": discord.Colour.purple(), "Legendary": discord.Colour.gold()}
 
-users_lock = Lock()
-
 @bot.command()
 async def test(ctx):
     await ctx.send("Test!_")
@@ -27,10 +24,9 @@ async def test(ctx):
     help="Usage: ricky gacha. Performs a wish."
 )
 async def gacha(ctx):
-    with users_lock:
-        user_handle.user_init(ctx.author.id)
-        success, item = user_handle.user_gacha(ctx.author.id)
-        user_handle.save_users()
+    user_handle.user_init(ctx.author.id)
+    success, item = user_handle.user_gacha(ctx.author.id)
+    user_handle.save_by_id(ctx.author.id)
         
     if not success:
         time_left = item - datetime.now()
@@ -45,8 +41,7 @@ async def gacha(ctx):
     help="Usage: ricky progress. Checks collection progress."
 )
 async def progress(ctx):
-    with users_lock:
-        user_handle.user_init(ctx.author.id)
+    user_handle.user_init(ctx.author.id)
 
     info = user_handle.collections(ctx.author.id)
 
@@ -62,10 +57,9 @@ async def progress(ctx):
 async def ability(ctx, *args):
     args = " ".join(args)
 
-    with users_lock:
-        user_handle.user_init(ctx.author.id)
-        ability_info, ability_success = user_handle.ability(ctx.author.id, args)
-        user_handle.save_users()
+    user_handle.user_init(ctx.author.id)
+    ability_info, ability_success = user_handle.ability(ctx.author.id, args)
+    user_handle.save_by_id(ctx.author.id)
 
     ability_embed = discord.Embed(title="Ability Used", description=ctx.author.display_name + ", " + ability_info).set_thumbnail(url=ctx.author.avatar).add_field(name="Success", value=ability_success)
     
@@ -77,8 +71,7 @@ async def ability(ctx, *args):
 async def attack(ctx, *args):
     args = " ".join(args)
 
-    with users_lock:
-        user_handle.user_init(ctx.author.id)
+    user_handle.user_init(ctx.author.id)
         
     guild = ctx.guild
 
@@ -92,16 +85,15 @@ async def attack(ctx, *args):
         target = targets[0]
 
     if target is not None:
-        with users_lock:
-            user_handle.user_init(target.id)
+        user_handle.user_init(target.id)
 
         if target.id == ctx.author.id:
             await ctx.send("Can't target yourself with an attack.")
             return
 
-        with users_lock:
-            body, win, loot = user_handle.attack(ctx.author.id, ctx.author.display_name, target.id, target.display_name)
-            user_handle.save_users()
+        body, win, loot = user_handle.attack(ctx.author.id, ctx.author.display_name, target.id, target.display_name)
+        user_handle.save_by_id(ctx.author.id)
+        user_handle.save_by_id(target.id)
         
         attack_embed = discord.Embed(title=ctx.author.display_name+"'s onslaught against "+target.display_name, description=body).set_thumbnail(url=ctx.author.avatar).add_field(name="Conclusion", value=win)
         loot_embed = discord.Embed(title="Loot Received", description="*Nice attack. Here's the loot we received from the enemy:*")
@@ -121,11 +113,10 @@ async def attack(ctx, *args):
     help="Usage: ricky items. Lists items owned and status."
 )
 async def items(ctx):
-    with users_lock:
-        user_handle.user_init(ctx.author.id)
-        info = user_handle.itemslist(ctx.author.id)
-        stability = user_handle.calculate_stability(ctx.author.id)
-        user_handle.save_users()
+    user_handle.user_init(ctx.author.id)
+    info = user_handle.itemslist(ctx.author.id)
+    stability = user_handle.calculate_stability(ctx.author.id)
+    user_handle.save_by_id(ctx.author.id)
     
     items_embed = discord.Embed(title=ctx.author.display_name+"'s Items", description=info).set_thumbnail(url=ctx.author.avatar).add_field(name="Showing", value="Items Owned").add_field(name="Team Stability", value=str(stability*100)+"%")
     await ctx.send(embed=items_embed)
@@ -136,10 +127,9 @@ async def items(ctx):
 async def show(ctx, *args):
     args = " ".join(args)
     
-    with users_lock:
-        user_handle.user_init(ctx.author.id)
-        selected_item = user_handle.select(ctx.author.id, args)
-        user_handle.save_users()
+    user_handle.user_init(ctx.author.id)
+    selected_item = user_handle.select(ctx.author.id, args)
+    user_handle.save_by_id(ctx.author.id)
 
     if selected_item == None:
         await ctx.send("Can't show the item: it doesn't exist or you don't own it.")
@@ -156,10 +146,9 @@ async def show(ctx, *args):
     help="Usage: ricky claim. Creates a new land claim (and shows an existing one)"
 )
 async def claim(ctx):
-    with users_lock:
-        user_handle.user_init(ctx.author.id)
-        claim_info = user_handle.create_land_claim(ctx.author.id)
-        user_handle.save_users()
+    user_handle.user_init(ctx.author.id)
+    claim_info = user_handle.create_land_claim(ctx.author.id)
+    user_handle.save_by_id(ctx.author.id)
 
     claim_embed = discord.Embed(title=ctx.author.display_name+"'s Land Claim", description=claim_info)
     await ctx.send(embed=claim_embed)
