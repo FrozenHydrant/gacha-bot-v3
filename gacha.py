@@ -7,6 +7,7 @@ import util
 from pynoise.noisemodule import Perlin
 from pynoise.noiseutil import noise_map_plane
 import numpy as np
+import os
 
 class GachaHandle:
     def load_shards(self):
@@ -127,11 +128,7 @@ class UserHandle:
     def __init__(self):
         self.perlin = Perlin()
         self.HOURS = 3.5
-        #self.POWERS = {"Common": 1, "Rare": 3, "Epic": 9, "Legendary": 27}
-        #self.LOOT = {"Cobblestone": "gears", "Pixiedust": "sparkles", "Harmony": "haloes"}
-
-        # TODO: Make English json file to handle translations
-        #self.LOOT_EN = {"gears": "Gears", "sparkles": "Pixels", "haloes": "Haloes"}
+        
         self.gacha_handle = GachaHandle()
         self.gacha_handle.load_shards()
 
@@ -141,12 +138,23 @@ class UserHandle:
         
     def load_users(self):
         self.users = {}
-        
-        with open("users.json", "r") as users_json:
-            try:
-                self.users = json.loads(users_json.read())
-            except JSONDecodeError:
-                print("We failed to load json data for users. This is probably bad.")
+
+        saves_directory = os.path.join(os.getcwd(), "users")
+        for savefile in os.listdir(saves_directory):
+            user_id = savefile.split(".")[0]
+            with open(os.path.join(saves_directory, savefile), "r") as user_info:
+                try:
+                    user_dict = json.loads(user_info.read())
+                    self.users[user_id] = user_dict
+                except JSONDecodeError:
+                    print("We failed to load json data for person", savefile, ". This could be bad.")
+
+                    
+        #with open("users.json", "r") as users_json:
+        #    try:
+        #        self.users = json.loads(users_json.read())
+        #    except JSONDecodeError:
+        #        print("We failed to load json data for users. This is probably bad.")
 
     def user_init(self, user_id):
         # Place all necessary fields if not present
@@ -505,8 +513,23 @@ class UserHandle:
         noisemap = np.array(noise_map_plane(width=12, height=12, lower_x=x, upper_x=x+1, lower_z=z, upper_z=z+1, source=self.perlin)).reshape(12, 12)
         return noisemap
             
-            
+
+    def save_by_id(self, user_id):
+        user_id = str(user_id)
+        write_directory = os.path.join(os.getcwd(), "users")
+        save_path = os.path.join(write_directory, user_id+".json")
+        if os.path.exists(save_path):
+            with open(save_path, "w") as save_file:
+                save_file.write(json.dumps(self.users[user_id], indent=4))
+        else:
+            with open(save_path, "x") as save_file:
+                save_file.write(json.dumps(self.users[user_id], indent=4))
+
         
     def save_users(self):
-        with open("users.json", "w") as users_json:
-            users_json.write(json.dumps(self.users, indent=4))
+        #with open("users.json", "w") as users_json:
+        #    users_json.write(json.dumps(self.users, indent=4))
+
+        # https://www.geeksforgeeks.org/python-os-path-exists-method/
+        for user_id in self.users:
+            self.save_by_id(user_id)
