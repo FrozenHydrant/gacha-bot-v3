@@ -36,6 +36,11 @@
          "id":"harmony",
          "name":"Harmony",
          "currency":"haloes"
+      },
+      {
+         "id":"culinary",
+         "name":"Culinary",
+         "currency":"sprinkles"
       }
    ],
    "currencies":[
@@ -50,6 +55,10 @@
       {
          "id":"haloes",
          "name":"Haloes"
+      },
+      {
+         "id":"sprinkles",
+         "name":"Sprinkles"
       }
    ]
 }

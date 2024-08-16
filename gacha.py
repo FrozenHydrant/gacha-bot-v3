@@ -197,6 +197,8 @@ class UserHandle:
                 self.users[user_id]["gears"] = 0
             if "haloes" not in self.users[user_id]:
                 self.users[user_id]["haloes"] = 0
+            if "sprinkles" not in self.users[user_id]:
+                self.users[user_id]["sprinkles"] = 0
 
             for item in self.users[user_id]["inventory"]:
                 if item not in self.users[user_id]["statuses"]:
@@ -226,11 +228,8 @@ class UserHandle:
             wishes = self.update_wishes(user_id)
             # If we have a wish, proceed
             if wishes >= 1:
+                wish_compensated = False
                 print("Wish is ready. Commencing sequence.")
-
-                # Update the wish count after wishing
-                wishes -= 1
-                self.users[user_id]["wish_amount"] = wishes
 
                 # Acquire the item
                 item = self.gacha_handle.get_gacha_option()
@@ -244,13 +243,22 @@ class UserHandle:
                     self.users[user_id]["collections"][collection] += 1
 
                     self.users[user_id]["total_items"] += 1
-                    
+                    wishes -= 1
+                else:
+                    wishes -= 0.5
+                    wish_compensated = True
+
+                # Update the wish count and inventory after wishing
+                self.users[user_id]["wish_amount"] = wishes
                 self.users[user_id]["inventory"][item] += 1
 
-                return (True, self.gacha_handle.get_item_info(item))
+                item_info = self.gacha_handle.get_item_info(item)
+                collection_name = self.gacha_handle.get_collection_info(item_info["collection"])["name"]
+
+                return (True, item_info, collection_name, wish_compensated)
             else:
                 # Give the time at which one wish will be available (at a rate of 3.5 hours per wish)
-                return (False, datetime.now() + timedelta(hours=self.HOURS)*(1-wishes))
+                return (False, datetime.now() + timedelta(hours=self.HOURS)*(1-wishes), None, None)
 
     def select(self, user_id, item):
         user_id = str(user_id)

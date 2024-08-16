@@ -25,7 +25,7 @@ async def test(ctx):
 )
 async def gacha(ctx):
     user_handle.user_init(ctx.author.id)
-    success, item = user_handle.user_gacha(ctx.author.id)
+    success, item, collection_name, wish_compensated = user_handle.user_gacha(ctx.author.id)
     user_handle.save_by_id(ctx.author.id)
         
     if not success:
@@ -33,9 +33,12 @@ async def gacha(ctx):
         await ctx.send(ctx.author.mention + ", you must wait **" + util.timeformat(time_left, " days", " hours", " minutes") + "** to wish again!")
     else:
         image_file = discord.File("img/"+item["id"]+".png", filename=item["id"]+".png")
-        wish_embed = discord.Embed(title=ctx.author.display_name+"'s "+item["name"], description="*"+item["description"]+"*", colour=COLOURS[item["rarity"]]).set_footer(text=item["source"]).set_image(url="attachment://"+item["id"]+".png").set_thumbnail(url=ctx.author.avatar).add_field(name="Rarity", value=item["rarity"]).add_field(name="Collection", value=item["collection"])
-                                                                                                                                                                                                                                                                                                                                                                   
-        await ctx.send(ctx.author.mention + ", wishes left: " + str(user_handle.wishes(ctx.author.id)), file=image_file, embed=wish_embed)
+        wish_embed = discord.Embed(title=ctx.author.display_name+"'s "+item["name"], description="*"+item["description"]+"*", colour=COLOURS[item["rarity"]]).set_footer(text=item["source"]).set_image(url="attachment://"+item["id"]+".png").set_thumbnail(url=ctx.author.avatar).add_field(name="Rarity", value=item["rarity"]).add_field(name="Collection", value=collection_name)
+
+        if wish_compensated:
+            await ctx.send(ctx.author.mention + ", (You received 0.5 wishes as compensation when acquiring a duplicate.) wishes left: " + str(user_handle.wishes(ctx.author.id)), file=image_file, embed=wish_embed)
+        else:
+            await ctx.send(ctx.author.mention + ", wishes left: " + str(user_handle.wishes(ctx.author.id)), file=image_file, embed=wish_embed)
 
 @bot.command(
     help="Usage: ricky progress. Checks collection progress."

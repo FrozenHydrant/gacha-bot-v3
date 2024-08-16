@@ -209,6 +209,56 @@
     "skins": []
 },
 {
+    "id": "chicken_chunk",
+    "name": "Chunk of Chicken",
+    "rarity": "Common",
+    "description": "Almost certainly the pinnacle of human cooking techniques.",
+    "source": "In Real Life",
+    "collection": "culinary",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "chicken_sandwich",
+    "name": "Medium-Rare Chicken Sandwich",
+    "rarity": "Common",
+    "description": "Almost certainly NOT the pinnacle of human cooking techniques.",
+    "source": "In Real Life",
+    "collection": "culinary",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "klee",
+    "name": "Klee",
+    "rarity": "Common",
+    "description": "English or Spanish?",
+    "source": "Genshin Impact... I think",
+    "collection": "cobblestone",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "shikanoko",
+    "name": "A Deer's Duel",
+    "rarity": "Common",
+    "description": "Shikanoko nokonoko...",
+    "source": "In Real Life",
+    "collection": "pixiedust",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "slurp_juice",
+    "name": "Slurp Juice",
+    "rarity": "Common",
+    "description": "Is it really worth it?",
+    "source": "In Real Life",
+    "collection": "culinary",
+    "ability": "None",
+    "skins": []
+},
+{
     "id": "ayanokoji",
     "name": "Ayanokoji",
     "rarity": "Rare",
@@ -263,6 +313,86 @@
     "name": "Chudjak",
     "rarity": "Rare",
     "description": "the West has fallen...but out of flaming ashes a phoenix shall rise. beneath the facade of the bitter man, chudjak's spiritual, moral, and artistic aspirations bring hope to an otherwise fallen West",
+    "source": "In Real Life",
+    "collection": "cobblestone",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "chiitan",
+    "name": "Chiitan",
+    "rarity": "Rare",
+    "description": "World's favourite Japanese mascot. All hail.",
+    "source": "In Real Life",
+    "collection": "cobblestone",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "cola_rice",
+    "name": "Cola with Rice",
+    "rarity": "Rare",
+    "description": "An incredible mixture of two beloved delicacies.",
+    "source": "In Real Life",
+    "collection": "culinary",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "doritos",
+    "name": "Doritos",
+    "rarity": "Rare",
+    "description": "Legend has it that doritos are fabricated using parts from this mythical creature.",
+    "source": "Bocchi the Rock",
+    "collection": "culinary",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "hideo_kojima",
+    "name": "Hideo Kojima",
+    "rarity": "Rare",
+    "description": "Coolest man dripped out in the iciest fit of all time.",
+    "source": "In Real Life",
+    "collection": "pixiedust",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "oomerism",
+    "name": "Oomer-jak",
+    "rarity": "Rare",
+    "description": "A man with potential, waiting to grow into his evolved form.",
+    "source": "In Real Life",
+    "collection": "cobblestone",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "pancakes",
+    "name": "Wok-Charred Pancakes",
+    "rarity": "Rare",
+    "description": "What's that smell?",
+    "source": "In Real Life",
+    "collection": "culinary",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "three_eggs",
+    "name": "Three Eggs and No Ham",
+    "rarity": "Rare",
+    "description": "But hey, they're doing an epic flip!.",
+    "source": "In Real Life",
+    "collection": "culinary",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "toilet_ananas_nasdas",
+    "name": "Toilette Ananas Nasdas",
+    "rarity": "Rare",
+    "description": "Malboro./_#+~_ toilet ananas nasdas TOILET ANANAS NASDAS",
     "source": "In Real Life",
     "collection": "cobblestone",
     "ability": "None",
@@ -339,6 +469,46 @@
     "skins": []
 },
 {
+    "id": "hakurei_reimu",
+    "name": "Reimu",
+    "rarity": "Epic",
+    "description": "I want a fumo!",
+    "source": "(eo_illustrator) Touhou Project",
+    "collection": "pixiedust",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "large_strawberry_crepe",
+    "name": "The Leaning Tower of Crepes",
+    "rarity": "Epic",
+    "description": "What, you think I'm some sort of glutton???",
+    "source": "Sound! Euphonium",
+    "collection": "culinary",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "small_strawberry_crepe",
+    "name": "Miku and her Strawberry Crepes",
+    "rarity": "Epic",
+    "description": "This is the food that will save the west",
+    "source": "ankaketomato (Twitter)",
+    "collection": "culinary",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "skull_epic",
+    "name": "Epic Pixel Skull",
+    "rarity": "Epic",
+    "description": "The moon, so beautiful (and an epic flaming skull)",
+    "source": "Minecraft",
+    "collection": "cobblestone",
+    "ability": "None",
+    "skins": []
+},
+{
     "id": "yameii",
     "name": "Yameii",
     "rarity": "Legendary",
@@ -353,9 +523,29 @@
     "name": "Hatsune Miku",
     "rarity": "Legendary",
     "description": "The world... is MINE! :)",
-    "source": "In Real Life",
+    "source": "KonYa666 (Twitter)",
     "collection": "harmony",
     "ability": "I'm Thinking Miku\n Immediately gain 3 wishes for everyone Harmony character that you own. (3 hour cooldown)",
+    "skins": []
+},
+{
+    "id": "medium_strawberry_crepe",
+    "name": "The Cafe of Crepes and Its Esteemed Guests",
+    "rarity": "Legendary",
+    "description": "Making my way downtown, walking fast... so I can get some delicious crepes.",
+    "source": "hirokazutw (Twitter)",
+    "collection": "culinary",
+    "ability": "None",
+    "skins": []
+},
+{
+    "id": "tea_party",
+    "name": "Tea Party",
+    "rarity": "Legendary",
+    "description": "So I've got a little bit of a sweet tooth...",
+    "source": "hirokazutw (Twitter)",
+    "collection": "culinary",
+    "ability": "None",
     "skins": []
 }
 ]
