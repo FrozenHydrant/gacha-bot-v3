@@ -318,17 +318,18 @@ class UserHandle:
             totality = ""
             for item in statuses:
                 time_left = self.update_item_status(user_id, item)
-                item_info = ""
+                item_info = self.gacha_handle.get_item_info(item)
+                item_text = ""
                 if time_left is not None:
-                    item_info = self.gacha_handle.get_item_info(item)["name"] + " - **" + statuses[item]["name"] + " (" + util.timeformat(time_left, "d", "h", "m") + ")**"
+                    item_text = item_info["name"] + " (x" + str(self.users[user_id]["inventory"][item]) + ") - **" + statuses[item]["name"] + " (" + util.timeformat(time_left, "d", "h", "m") + ")**"
                 else:
                     # Crazy string mechanics
                     if self.gacha_handle.has_ability(self.gacha_handle.get_item_info(item)["id"]):
-                        item_info = "Special Ability "
-                    item_info = self.gacha_handle.get_item_info(item)["name"] + " - **" + item_info + statuses[item]["name"] + "**"
+                        item_text = "Special Ability "
+                    item_text = self.gacha_handle.get_item_info(item)["name"] + " (x" + str(self.users[user_id]["inventory"][item]) + ") - **" + item_text + statuses[item]["name"] + "**"
 
-                item_info += "\n"
-                totality += item_info
+                item_text += "\n"
+                totality += item_text
         return totality
 
     def ability(self, user_id, item_name):
