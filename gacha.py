@@ -119,6 +119,12 @@ class GachaHandle:
     def get_rarity_info(self, rarity):
         return copy.copy(self.rarities_dict[rarity])
 
+    def get_rarities(self):
+        counts = {}
+        for rarity in self.shards_rarities:
+            counts[rarity] = len(self.shards_rarities[rarity])
+        return counts
+
     def get_currency_info(self, currency):
         return copy.copy(self.currencies_dict[currency])
 
@@ -310,12 +316,25 @@ class UserHandle:
         return time_left
 
 
+    def get_amount_rarity_owned(self, user_id, rarity):
+        user_id = str(user_id)
+        inventory = self.users[user_id]["inventory"]
+        amount = 0
+        for item in inventory:
+            item_info = self.gacha_handle.get_item_info(item)
+            if item_info["rarity"] == rarity:
+                amount += 1
+        return amount
+            
+
     def itemslist(self, user_id):
         user_id = str(user_id)
 
         with self.users_lock:
             statuses = self.users[user_id]["statuses"]
-            totality = ""
+            texts = {}
+            all_rarities = self.gacha_handle.get_rarities()
+            #totality = ""
             for item in statuses:
                 time_left = self.update_item_status(user_id, item)
                 item_info = self.gacha_handle.get_item_info(item)
@@ -329,7 +348,16 @@ class UserHandle:
                     item_text = self.gacha_handle.get_item_info(item)["name"] + " (x" + str(self.users[user_id]["inventory"][item]) + ") - **" + item_text + statuses[item]["name"] + "**"
 
                 item_text += "\n"
-                totality += item_text
+
+                item_rarity = item_info["rarity"]
+                if item_rarity not in texts:
+                    texts[item_rarity] = "__**" + item_rarity + " (" + str(self.get_amount_rarity_owned(user_id, item_rarity)) + "/" + str(all_rarities[item_rarity]) + ")**__\n"
+                texts[item_rarity] += item_text
+
+            totality = ""
+            for paragraph in texts.values():
+                totality += paragraph + "\n"
+                
         return totality
 
     def ability(self, user_id, item_name):
