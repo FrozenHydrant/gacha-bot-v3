@@ -23,7 +23,14 @@ async def test(ctx):
 @bot.command(
     help="Usage: ricky gacha. Performs a wish."
 )
-async def gacha(ctx):
+async def gacha(ctx, *args):
+    args = " ".join(args)
+    if "legendary" in args:
+        legendary_embed = discord.Embed(title="Inventory Successfully Cleared", description=ctx.author.display_name+", your command **ricky gacha "+args+"** has successfully been processed, and your inventory has been wiped. We hope you had fun playing with ricky gacha, and we wish to see you soon.")
+        await ctx.send(ctx.author.mention, embed=legendary_embed)
+        return
+
+    
     user_handle.user_init(ctx.author.id)
     success, item, collection_name, wish_compensated = user_handle.user_gacha(ctx.author.id)
     user_handle.save_by_id(ctx.author.id)
@@ -33,7 +40,7 @@ async def gacha(ctx):
         await ctx.send(ctx.author.mention + ", you must wait **" + util.timeformat(time_left, " days", " hours", " minutes") + "** to wish again!")
     else:
         image_file = discord.File("img/"+item["id"]+".png", filename=item["id"]+".png")
-        wish_embed = discord.Embed(title=ctx.author.display_name+"'s "+item["name"], description="*"+item["description"]+"*", colour=COLOURS[item["rarity"]]).set_footer(text=item["source"]).set_image(url="attachment://"+item["id"]+".png").set_thumbnail(url=ctx.author.avatar).add_field(name="Rarity", value=item["rarity"]).add_field(name="Collection", value=collection_name)
+        wish_embed = discord.Embed(title=ctx.author.display_name+"'s "+item["name"]+"("+item["rarity"]+")", description="*"+item["description"]+"*", colour=COLOURS[item["rarity"]]).set_footer(text=item["source"]).set_image(url="attachment://"+item["id"]+".png").set_thumbnail(url=ctx.author.avatar).add_field(name="Rarity", value=item["rarity"]).add_field(name="Collection", value=collection_name)
 
         if wish_compensated:
             await ctx.send(ctx.author.mention + ", (You received 0.5 wishes as compensation when acquiring a duplicate.) wishes left: " + str(user_handle.wishes(ctx.author.id)), file=image_file, embed=wish_embed)

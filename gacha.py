@@ -69,6 +69,7 @@ class GachaHandle:
 
             print(self.shards_dict, self.shards_rarities, " have been loaded.\n")
             print(self.collection_counts, self.collections_dict, " have also been loaded.\n")
+            print("In total", self.total_shards, "shards have been loaded.")
 
         with open("abilities.json", "r") as abilities_json:
             self.abilities_dict = json.loads(abilities_json.read())
@@ -108,6 +109,8 @@ class GachaHandle:
     
     # Please do not modify the returned values. That would not be nice.
     def get_item_info(self, item):
+        if item not in self.shards_dict:
+            return None
         return copy.copy(self.shards_dict[item])
 
     def get_collection_info(self, collection):
