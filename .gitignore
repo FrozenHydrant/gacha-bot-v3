@@ -1,5 +1,8 @@
-users*
-temp*
+users/
+temp/
+song/
+playlist/
+test*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

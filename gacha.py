@@ -9,6 +9,8 @@ from pynoise.noiseutil import noise_map_plane
 import numpy as np
 import os
 from threading import Lock
+import yt_dlp
+import json
 
 class GachaHandle:
     def load_shards(self):
@@ -134,6 +136,138 @@ class GachaHandle:
     def get_currencies(self):
         return copy.copy(self.currencies_dict)
 
+class SongHandle:
+    def __init__(self):
+        # Taken from yt_dlp github
+        self.ydl_opts = {
+            'format': 'm4a/bestaudio/best',
+            # ℹ️ See help(yt_dlp.postprocessor) for a list of available Postprocessors and their arguments
+            'postprocessors': [{  # Extract audio using ffmpeg
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'm4a',
+            }],
+            'outtmpl': 'song/%(id)s.%(ext)s'
+        }
+        self.ydl = yt_dlp.YoutubeDL(self.ydl_opts)
+        self.song_info = {}
+        self.song_lock = Lock()
+
+        # Load song info from disk
+        try:
+            with open(os.path.join(os.getcwd(), "song", "song_info.json"), "r") as song_info_file:
+                self.song_info = json.loads(song_info_file.read())
+        except:
+            print("Error loading song info. Maybe none exists, or file is cooked.")
+
+    def _save_song_info(self):
+        with self.song_lock:
+            try:
+                song_save_file = open(os.path.join(os.getcwd(), "song", "song_info.json"), "x")
+            except:
+                song_save_file = open(os.path.join(os.getcwd(), "song", "song_info.json"), "w")
+            song_save_file.write(json.dumps(self.song_info))
+            song_save_file.close()
+    
+    def _download_song(self, info):
+        name_of_file = info['id'] + "." + info['audio_ext']
+        if os.path.exists(os.path.join(os.getcwd(), "song", name_of_file)):
+            print(name_of_file, " exists. Not downloading.")
+            return True
+
+        if info['duration_string'].count(":") >= 2:
+            print(name_of_file, "is too long. Not considering it.")
+            return False
+
+        try:
+            self.ydl.download(info['original_url'])
+
+            # Add relevant info to songs_info json file
+            important_info = {"id": info["id"], "title": info["title"], "duration": info["duration_string"], "url": info["original_url"], "uses": 0}
+            if "channel" in info:
+                important_info["channel"] = info["channel"]
+            elif "uploader" in info:
+                important_info["channel"] = info["uploader"]
+            with self.song_lock:
+                self.song_info[info["id"]] = important_info
+
+            # Save the song
+            self._save_song_info()
+            
+            return True
+        except Exception as e:
+            # Delete leftovers
+            if os.path.exists(os.path.join(os.getcwd(), "song", info['id']+".m4a")):
+                os.remove(os.path.join(os.getcwd(), "song", info['id']+".m4a"))
+            print('An unknown problem occured while downloading.', e)
+            return False
+
+    def _download_url(self, user_id, user_playlist, url):
+        with self.ydl:
+            try:
+                successful_downloads = 0
+                info = self.ydl.sanitize_info(self.ydl.extract_info(url, download=False))
+
+                # Check if playlist or just one song
+                if "entries" not in info:
+                    # Just one song
+                    success = self._download_song(info)
+                    if success:
+                        if info['id'] not in user_playlist["songs"]:
+                            successful_downloads += 1
+                            user_playlist["songs"].append(info['id'])
+                            with self.song_lock:
+                                self.song_info[info['id']]['uses'] += 1
+                else:
+                    # Entire playlist
+                    for song in info["entries"]:
+                        success = self._download_song(song)
+                        if success:
+                            if song['id'] not in user_playlist["songs"]:
+                                successful_downloads += 1
+                                user_playlist["songs"].append(song['id'])
+                                with self.song_lock:
+                                    self.song_info[song['id']]['uses'] += 1
+
+                # Try saving the song info again
+                self._save_song_info()
+                
+                # TODO: Threadsafe
+                try:
+                    playlist_file = open(os.path.join(os.getcwd(), "playlist", user_id+".json"), "x")
+                except:
+                    playlist_file = open(os.path.join(os.getcwd(), "playlist", user_id+".json"), "w")
+                #print(playlist_file)
+                playlist_file.write(json.dumps(user_playlist))
+                #print(json.dumps(user_playlist))
+                playlist_file.close()
+                return successful_downloads
+            except yt_dlp.utils.DownloadError:
+                print("Download failed for the url", url)
+                return 0
+
+    def download(self, ctx, url):
+        user_id = str(ctx.author.id)
+        try:
+            with open(os.path.join(os.getcwd(), "playlist", user_id+".json"), "r") as playlist_file:
+                user_playlist = json.loads(playlist_file.read())
+        except:
+            user_playlist = {"songs": []}
+
+        return {"ctx": ctx, "count": self._download_url(user_id, user_playlist, url)}
+                    
+    def info_test(self, url):
+        with self.ydl:
+            output = None
+            try:
+                output = open('test_song_output.txt', 'x')
+            except:
+                output = open('test_song_output.txt', 'w')
+                
+            info = self.ydl.sanitize_info(self.ydl.extract_info(url, download=False))
+            #print('Got song with information:', info['audio_ext'], info['id'])
+            output.write(json.dumps(info))
+            output.close()
+            
 class UserHandle:
     def __init__(self):
         self.perlin = Perlin()
@@ -160,7 +294,6 @@ class UserHandle:
                     self.users[user_id] = user_dict
                 except JSONDecodeError:
                     print("We failed to load json data for person", savefile, ". This could be bad.")
-
                     
         #with open("users.json", "r") as users_json:
         #    try:
@@ -279,8 +412,6 @@ class UserHandle:
 
         if selected_item_id not in self.users[user_id]["inventory"]:
             return None
-
-        #self.users[user_id]["selected"] = selected_item_id
                 
         return self.gacha_handle.get_item_info(selected_item_id)
         
@@ -337,7 +468,6 @@ class UserHandle:
             statuses = self.users[user_id]["statuses"]
             texts = {}
             all_rarities = self.gacha_handle.get_rarities()
-            #totality = ""
             for item in statuses:
                 time_left = self.update_item_status(user_id, item)
                 item_info = self.gacha_handle.get_item_info(item)
@@ -381,11 +511,6 @@ class UserHandle:
                 return ("The selected unit is on cooldown.", False)
 
             actual_target = None
-            #if ability["targeted"]:      
-            #    if target_id is None:
-            #        return "Invalid target."
-            #    actual_target = target_id
-            #else:
             actual_target = user_id
 
             for effect in ability["effects"]:
@@ -494,8 +619,6 @@ class UserHandle:
 
             # Initialize the given loot with all possible loots
             given_loot = {}
-            #for loot in self.LOOT_EN.values():
-            #    given_loot[loot] = 0
 
             # Shuffle the lists, based on https://stackoverflow.com/questions/10048069/what-is-the-most-pythonic-way-to-pop-a-random-element-from-a-list
             random.shuffle(attack_inventory)
@@ -584,9 +707,6 @@ class UserHandle:
 
         
     def save_users(self):
-        #with open("users.json", "w") as users_json:
-        #    users_json.write(json.dumps(self.users, indent=4))
-
         # https://www.geeksforgeeks.org/python-os-path-exists-method/
         for user_id in self.users:
             self.save_by_id(user_id)
