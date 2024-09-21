@@ -561,7 +561,7 @@ class UserHandle:
             ability = self.gacha_handle.get_ability(ability_item["id"])
 
             # Update item status
-            self.update_item_status(user_id, ability_item)
+            self.update_item_status(user_id, ability_item["id"])
             if self.users[user_id]["statuses"][ability_item["id"]]["name"] != "Available":
                 return ("The selected unit is on cooldown.", False)
 

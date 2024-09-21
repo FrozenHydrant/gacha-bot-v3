@@ -145,6 +145,7 @@ async def np(ctx):
     help="Usage: ricky add <url>. Adds the specified song to your personal playlist."
 )
 async def add(ctx, url):
+    return
     add_embed = discord.Embed(title="URL Submitted", description=ctx.author.display_name+", we are now processing your submitted URL. We will **NOT** let you know when your song(s) are ready.")
     await ctx.send(ctx.author.mention, embed=add_embed)
 
