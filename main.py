@@ -64,7 +64,15 @@ async def check_and_play_song():
         voice_client = guilds_song_info[guild_id]["vc"]
         if voice_client is not None and voice_client.is_connected() and not voice_client.is_playing():
             await play_next_song(voice_client, guild_id)
-                
+
+async def user_init_and_notify(ctx, user_id):
+    compensated = user_handle.user_init(user_id)
+
+    if compensated > 0:
+        compensation_embed = discord.Embed(title="Wish Compensation", description=ctx.author.display_name+", because some of your cards have disappeared from existence, you have been awarded **"+str(compensated)+"** wishes for compensation. Good luck on your pulls.")
+        await ctx.send(embed=compensation_embed)
+
+    
 ###
 # BOT COMMANDS
 ###
@@ -199,7 +207,7 @@ async def gacha(ctx, *args):
         return
 
     
-    user_handle.user_init(ctx.author.id)
+    await user_init_and_notify(ctx, ctx.author.id)
     success, item, collection_name, wish_compensated = user_handle.user_gacha(ctx.author.id)
     user_handle.save_by_id(ctx.author.id)
         
@@ -219,7 +227,7 @@ async def gacha(ctx, *args):
     help="Usage: ricky progress. Checks collection progress."
 )
 async def progress(ctx):
-    user_handle.user_init(ctx.author.id)
+    await user_init_and_notify(ctx, ctx.author.id)
 
     info = user_handle.collections(ctx.author.id)
 
@@ -235,7 +243,7 @@ async def progress(ctx):
 async def ability(ctx, *args):
     args = " ".join(args)
 
-    user_handle.user_init(ctx.author.id)
+    await user_init_and_notify(ctx, ctx.author.id)
     ability_info, ability_success = user_handle.ability(ctx.author.id, args)
     user_handle.save_by_id(ctx.author.id)
 
@@ -249,7 +257,7 @@ async def ability(ctx, *args):
 async def attack(ctx, *args):
     args = " ".join(args)
 
-    user_handle.user_init(ctx.author.id)
+    await user_init_and_notify(ctx, ctx.author.id)
         
     guild = ctx.guild
 
@@ -263,7 +271,7 @@ async def attack(ctx, *args):
         target = targets[0]
 
     if target is not None:
-        user_handle.user_init(target.id)
+        await user_init_and_notify(ctx, target.id)
 
         if target.id == ctx.author.id:
             await ctx.send("Can't target yourself with an attack.")
@@ -291,7 +299,7 @@ async def attack(ctx, *args):
     help="Usage: ricky items. Lists items owned and status."
 )
 async def items(ctx):
-    user_handle.user_init(ctx.author.id)
+    await user_init_and_notify(ctx, ctx.author.id)
     info = user_handle.itemslist(ctx.author.id)
     stability = user_handle.calculate_stability(ctx.author.id)
     user_handle.save_by_id(ctx.author.id)
@@ -305,7 +313,7 @@ async def items(ctx):
 async def show(ctx, *args):
     args = " ".join(args)
     
-    user_handle.user_init(ctx.author.id)
+    await user_init_and_notify(ctx, ctx.author.id)
     selected_item = user_handle.select(ctx.author.id, args)
     user_handle.save_by_id(ctx.author.id)
 
@@ -324,7 +332,7 @@ async def show(ctx, *args):
     help="Usage: ricky claim. Creates a new land claim (and shows an existing one)"
 )
 async def claim(ctx):
-    user_handle.user_init(ctx.author.id)
+    await user_init_and_notify(ctx, ctx.author.id)
     claim_info = user_handle.create_land_claim(ctx.author.id)
     user_handle.save_by_id(ctx.author.id)
 

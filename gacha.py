@@ -18,7 +18,7 @@ class GachaHandle:
         
         self.shards_dict = {}
         self.shards_rarities = {}
-        self.options = []
+        self.options = {}
         self.collection_counts = {}
         self.collections_dict = {}
         self.rarities_dict = {}
@@ -27,20 +27,12 @@ class GachaHandle:
         self.total_shards = 0
         with open("options.json", "r") as rarities:
             all_options = json.loads(rarities.read())
-            total = 0
             to_infer_prob = None
             for option in all_options["rarities"]:
                 parsed_chance = float(option["chance"])
                 self.rarities_dict[option["rarity"]] = option
-                self.options.append((option["rarity"], parsed_chance))
-                if parsed_chance == -1:
-                    to_infer_prob = len(self.options)-1
-                else:
-                    total += parsed_chance
+                self.options[option["rarity"]] = parsed_chance
                 
-
-            self.options[to_infer_prob] = (self.options[to_infer_prob][0], 1-total)
-            self.options.sort(key=lambda x: x[1])
             print("Loaded rarities: " + str(self.options), self.rarities_dict, "\n")
 
             # Initialize collections
@@ -77,7 +69,38 @@ class GachaHandle:
             self.abilities_dict = json.loads(abilities_json.read())
             print(self.abilities_dict, " has been loaded.\n")
 
-    def get_gacha_option(self):
+    def infer_rarities_to_list(self, options):
+        user_options = copy.copy(options)
+        to_infer_rarity = None
+        accumulated_chance = 0
+        for option in user_options:
+            if user_options[option] >= 0:
+                accumulated_chance += user_options[option]
+            else:
+                to_infer_rarity = option
+
+        if to_infer_rarity is not None:
+            user_options[to_infer_rarity] = 1-accumulated_chance
+
+        user_options_list = []
+        for option in user_options:
+            user_options_list.append((option, user_options[option]))
+        user_options_list.sort(key=lambda x: x[1])
+
+        return user_options_list
+    
+    def get_gacha_option(self, avoid, overrides, mults):
+        user_options = copy.copy(self.options)
+
+        for override in overrides:
+            user_options[override] = overrides[override]
+
+        for mult in mults:
+            user_options[mult] *= mults[mult]
+
+        user_options_list = self.infer_rarities_to_list(user_options)
+        print("User's options:", user_options_list, " Global options:", self.options)
+        
         # But why not?
         random.seed()
         
@@ -86,13 +109,18 @@ class GachaHandle:
         i = -1
         while pull > total:
             i += 1
-            total += self.options[i][1]
+            total += user_options_list[i][1]
             
+        selected_rarity = user_options_list[i][0]
+        item_pool = copy.copy(self.shards_rarities[selected_rarity])
+        for item in avoid:
+            if item in item_pool:
+                item_pool.remove(item)
 
-        #print(self.options[i][0] + " was selected.")
-
-        selected_rarity = self.options[i][0]
-        given_item = random.choice(self.shards_rarities[selected_rarity])
+        if len(item_pool) > 0:        
+            given_item = random.choice(item_pool)
+        else:
+            given_item = random.choice(self.shards_rarities[selected_rarity])
         return given_item
 
     def get_id_from_name(self, name):
@@ -135,6 +163,9 @@ class GachaHandle:
 
     def get_currencies(self):
         return copy.copy(self.currencies_dict)
+
+    def get_rarity_tiers(self):
+        return self.infer_rarities_to_list(self.options)
 
 class SongHandle:
     def __init__(self):
@@ -305,6 +336,7 @@ class UserHandle:
         # Place all necessary fields if not present
         user_id = str(user_id)
         with self.users_lock:
+            compensated = 0
             if user_id not in self.users:
                 self.users[user_id] = {}
             if "last_wish_time" not in self.users[user_id]:
@@ -313,6 +345,24 @@ class UserHandle:
                 self.users[user_id]["wish_amount"] = 0
             if "inventory" not in self.users[user_id]:
                 self.users[user_id]["inventory"] = {}
+
+            ### More inventory management #############
+            to_remove = []
+            for item in self.users[user_id]["inventory"]:
+                item_info = self.gacha_handle.get_item_info(item)
+
+                if item_info is None:
+                    compensated += self.users[user_id]["inventory"][item]
+                    to_remove.append(item)
+
+            self.users[user_id]["wish_amount"] += compensated
+
+            while len(to_remove) > 0:
+                item_to_remove = to_remove.pop()
+                self.users[user_id]["inventory"].pop(item_to_remove)
+            ### End of More Inventory Management ######
+            ###########################################
+                        
             if "collections" not in self.users[user_id]:
                 self.users[user_id]["collections"] = {}
 
@@ -346,6 +396,8 @@ class UserHandle:
                 if item not in self.users[user_id]["statuses"]:
                     self.users[user_id]["statuses"][item] = {"name": "Available"}
 
+            return compensated
+
     def update_wishes(self, user_id):
         user_id = str(user_id)
 
@@ -374,7 +426,8 @@ class UserHandle:
                 print("Wish is ready. Commencing sequence.")
 
                 # Acquire the item
-                item = self.gacha_handle.get_gacha_option()
+                item = self.gacha_handle.get_gacha_option(list(self.users[user_id]["inventory"].keys()), {}, {})
+
                 if item not in self.users[user_id]["inventory"]:
                     self.users[user_id]["inventory"][item] = 0
 
@@ -507,6 +560,8 @@ class UserHandle:
             # Let's avoid using an eval here.
             ability = self.gacha_handle.get_ability(ability_item["id"])
 
+            # Update item status
+            self.update_item_status(user_id, ability_item)
             if self.users[user_id]["statuses"][ability_item["id"]]["name"] != "Available":
                 return ("The selected unit is on cooldown.", False)
 
