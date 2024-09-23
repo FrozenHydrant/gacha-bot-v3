@@ -10,7 +10,6 @@ import numpy as np
 import os
 from threading import Lock
 import yt_dlp
-import json
 
 class GachaHandle:
     def load_shards(self):
@@ -346,6 +345,9 @@ class UserHandle:
             if "inventory" not in self.users[user_id]:
                 self.users[user_id]["inventory"] = {}
 
+            # Version control: nonexistent
+            self.users[user_id]["wish_amount"] = float(self.users[user_id]["wish_amount"])
+
             ### More inventory management #############
             to_remove = []
             for item in self.users[user_id]["inventory"]:
@@ -521,25 +523,34 @@ class UserHandle:
             statuses = self.users[user_id]["statuses"]
             texts = {}
             all_rarities = self.gacha_handle.get_rarities()
+            to_remove = []
             for item in statuses:
                 time_left = self.update_item_status(user_id, item)
                 item_info = self.gacha_handle.get_item_info(item)
-                item_text = ""
-                if time_left is not None:
-                    item_text = item_info["name"] + " (x" + str(self.users[user_id]["inventory"][item]) + ") - **" + statuses[item]["name"] + " (" + util.timeformat(time_left, "d", "h", "m") + ")**"
+                # Inventory management
+                if item_info is None:
+                    to_remove.append(item)
+                # End of inventory management
                 else:
-                    # Crazy string mechanics
-                    if self.gacha_handle.has_ability(self.gacha_handle.get_item_info(item)["id"]):
-                        item_text = "Special Ability "
-                    item_text = self.gacha_handle.get_item_info(item)["name"] + " (x" + str(self.users[user_id]["inventory"][item]) + ") - **" + item_text + statuses[item]["name"] + "**"
+                    item_text = ""
+                    if time_left is not None:
+                        item_text = item_info["name"] + " (x" + str(self.users[user_id]["inventory"][item]) + ") - **" + statuses[item]["name"] + " (" + util.timeformat(time_left, "d", "h", "m") + ")**"
+                    else:
+                        # Crazy string mechanics
+                        if self.gacha_handle.has_ability(self.gacha_handle.get_item_info(item)["id"]):
+                            item_text = "Special Ability "
+                        item_text = self.gacha_handle.get_item_info(item)["name"] + " (x" + str(self.users[user_id]["inventory"][item]) + ") - **" + item_text + statuses[item]["name"] + "**"
 
-                item_text += "\n"
+                    item_text += "\n"
 
-                item_rarity = item_info["rarity"]
-                if item_rarity not in texts:
-                    texts[item_rarity] = "__**" + item_rarity + " (" + str(self.get_amount_rarity_owned(user_id, item_rarity)) + "/" + str(all_rarities[item_rarity]) + ")**__\n"
-                texts[item_rarity] += item_text
-
+                    item_rarity = item_info["rarity"]
+                    if item_rarity not in texts:
+                        texts[item_rarity] = "__**" + item_rarity + " (" + str(self.get_amount_rarity_owned(user_id, item_rarity)) + "/" + str(all_rarities[item_rarity]) + ")**__\n"
+                    texts[item_rarity] += item_text
+                    
+            for item in to_remove:
+                statuses.pop(item)
+            
             totality = ""
             for paragraph in texts.values():
                 totality += paragraph + "\n"

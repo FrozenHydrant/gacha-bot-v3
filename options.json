@@ -7,18 +7,23 @@
       },
       {
          "rarity":"Rare",
-         "chance":"0.1",
+         "chance":"0.11",
          "strength":3
       },
       {
          "rarity":"Epic",
-         "chance":"0.03",
+         "chance":"0.04",
          "strength":9
       },
       {
          "rarity":"Legendary",
-         "chance":"0.01",
+         "chance":"0.0075",
          "strength":27
+      },
+      {
+         "rarity":"Exquisite",
+         "chance":"0.001",
+         "strength":100
       }
    ],
    "collections":[

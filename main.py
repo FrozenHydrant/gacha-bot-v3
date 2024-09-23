@@ -27,7 +27,7 @@ guilds_song_info = {}
 async_loop = util.AsyncHelp()
 
 #song_handle.info_test("https://soundcloud.com/meoxa/tsukinami-meoxa-x-katabatic-bootleg")
-COLOURS = {"Common": discord.Colour.light_gray(), "Rare": discord.Colour.blue(), "Epic": discord.Colour.purple(), "Legendary": discord.Colour.gold()}
+COLOURS = {"Common": discord.Colour.light_gray(), "Rare": discord.Colour.blue(), "Epic": discord.Colour.purple(), "Legendary": discord.Colour.gold(), "Exquisite": discord.Colour.red()}
 
 #async def song_add_give_feedback():
 #    while True:

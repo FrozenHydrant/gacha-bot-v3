@@ -9,6 +9,16 @@
     "skins": []
 },
 {
+    "id": "awesome_factory",
+    "name": "Awesome Factory",
+    "rarity": "Common",
+    "description": "All factories become messy, get cleaned up, and then become messy yet again.",
+    "source": "Satisfactory",
+    "collection": "cobblestone",
+    "ability": "None",
+    "skins": []
+},
+{
     "id": "pink_slime",
     "name": "Pink Slime",
     "rarity": "Common",
@@ -539,13 +549,23 @@
     "skins": []
 },
 {
-    "id": "tea_party",
-    "name": "Tea Party",
+    "id": "mika_and_nagisa",
+    "name": "Baking with Mika and Nagisa",
     "rarity": "Legendary",
-    "description": "So I've got a little bit of a sweet tooth...",
-    "source": "hirokazutw (Twitter)",
+    "description": "Now we're done with tea parties. Let's try baking something instead.",
+    "source": "Blue Archive",
     "collection": "culinary",
     "ability": "None",
+    "skins": []
+},
+{
+    "id": "seia_yurizono",
+    "name": "Seia Yurizono",
+    "rarity": "Exquisite",
+    "description": "So then, let’s suppose that you were able every night to dream any dream you wanted to dream, and that you could, for example, have the power within one night to dream 75 years of time, or any length of time you wanted to have. And you would, naturally, as you began on this adventure of dreams, you would fulfill all your wishes. You would have every kind of pleasure you could conceive. And after several nights of 75 years of total pleasure each you would say “Well that was pretty great. But now let’s have a surprise...",
+    "source": "Blue Archive",
+    "collection": "harmony",
+    "ability": "Coming Soon",
     "skins": []
 }
 ]
